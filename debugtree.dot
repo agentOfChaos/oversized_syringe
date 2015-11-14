@@ -1,7 +1,0 @@
-digraph yggdrasil {
-node_0 [label=""]
-node_1 [label="0"]
-node_2 [label="ff"]
-node_0 -> node_1 [label=0]
-node_0 -> node_2 [label=1]
-}
