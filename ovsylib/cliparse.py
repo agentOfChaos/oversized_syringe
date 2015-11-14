@@ -15,6 +15,8 @@ def parsecli():
                         type=str)
     parser.add_argument('--dry-run', '-D', help='Applies to packing, not unpacking; do everything, create files/'
                         'directories, except nothing is actually written', action='store_true')
+    parser.add_argument('--merge', '-m', metavar='dir', help='Merge the content of target directory as a new pac-file',
+                        type=str)
 
-    parser.add_argument('file', metavar='filename', help='.pac file to extract from')
+    parser.add_argument('file', metavar='filename', help='.pac file to extract from / directory to compress')
     return parser.parse_args()

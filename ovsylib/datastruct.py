@@ -1,6 +1,7 @@
 import struct,os
 from ovsylib import datamover, compression
 import math
+import platform
 
 intsize = 2
 longsize = 4
@@ -25,6 +26,15 @@ def outString(binfile, length, text):
             binfile.write(struct.pack("c", text[i].encode("ascii")))
         else:
             binfile.write(struct.pack("B", 0))
+
+def adjustSeparatorForPac(originstring):
+    return originstring.replace("/","\\")
+
+def adjustSeparatorForFS(originstring):
+    if platform.system() == "Windows":
+        return originstring.replace("/","\\")
+    else:
+        return originstring.replace("\\","/")
 
 
 class header:
@@ -75,8 +85,11 @@ class fileentry:
             self.compressed = True
         self.offset = data[4]
 
-    def createFromFile(self, name, filepath, compress=True):
-        self.name = name
+    def createFromFile(self, name, filepath, compress=True, adjust_separator=True):
+        if adjust_separator:
+            self.name = adjustSeparatorForPac(name)
+        else:
+            self.name = name
         self.size = os.path.getsize(filepath)
         self.import_from = filepath
         if compress > 0:
@@ -221,7 +234,7 @@ class pacfile:
 
     def createDestination(self, fid, destination):
         file = self.getFileById(fid)
-        fname = file.name.replace("\\","/")
+        fname = adjustSeparatorForFS(file.name)
         fullpath = os.path.join(destination, fname)
         os.makedirs(os.path.dirname(fullpath), exist_ok=True)
         return fullpath
@@ -253,6 +266,20 @@ class pacfile:
                 file.writeMetadata(updatedversion, dry_run=dry_run)
             for file in self.files:
                 file.updateMyself(original, updatedversion, self.metadata_offset, dry_run=dry_run)
+
+    def searchFile(self, name, exact_match=True, adjust_separator=True):
+        """ :return: list of file ids """
+        ret = []
+        if adjust_separator:
+            name = adjustSeparatorForPac(name)
+        for file in self.files:
+            if exact_match:
+                if file.name == name:
+                    ret.append(file.id)
+            else:
+                if file.name.find(name) != -1:
+                    ret.append(file.id)
+        return ret
 
     def printInfo(self):
         print("Metadata size: %06x" % (self.metadata_offset,))
