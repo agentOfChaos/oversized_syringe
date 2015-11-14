@@ -15,19 +15,29 @@ However, since being dependant on that kind of sucks, I decided to make my own p
 by reverse-engineering the game's archive format.
 
 I was able to un-compress the files by using QuickBMS (which you should also check out), then it was just
-a matter of discovering the compression algorithm, comparing "before" and "after"
+a matter of discovering the compression algorithm, comparing "before" and "after".
+
+The file's directory and compression formats are pretty much understood now (I'd say 99%); the developement
+is aimed at creating a stable and usable tool
 
 # Usage
 
+## CLI version
+
     ./oversized_syringe.py -h
+    
+## GUI version
+
+not yet developed
 
 # Roadmap
 
 1. Directory import/merge feature
 2. Extensive testing
 3. GUI
-4. Better compression algorithm
-5. Support for other OSes
+4. Speed improvement
+5. Better compression algorithm
+6. Support for other OSes
 
 # Thanks to
 
