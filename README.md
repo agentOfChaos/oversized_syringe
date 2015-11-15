@@ -26,13 +26,15 @@ is aimed at creating a stable and usable tool
 
     ./oversized_syringe.py -h
     
+TODO: description
+    
 ## GUI version
 
 not yet developed
 
 # Roadmap
 
-1. Directory import/merge feature
+1. Creation of entirely new package files
 2. Extensive testing
 3. GUI
 4. Speed improvement
