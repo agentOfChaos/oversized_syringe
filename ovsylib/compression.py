@@ -100,7 +100,7 @@ class chuunicomp:
         self.chunk_num = chunksnum
         self.const2 = 0x20000
         self.chunks = self.prepareChunks(None)
-        self.header_size = 4 + (3 * chunksnum)
+        self.header_size = (4 + (3 * chunksnum)) * 4
 
     def prepareChunks(self, binfile=None):
         body = []
@@ -130,8 +130,9 @@ class chuunicomp:
         self.writeHeader(savefile, dry_run=dry_run)
         for chunk in self.chunks:
             chunk.writeSubHeader(savefile, dry_run=dry_run)
+        metadata_offset = savefile.tell()
         for chunk in self.chunks:
-            totalcomp += chunk.compress(sourcefile, savefile, self.header_size, dry_run=dry_run, debuggy=debuggy)
+            totalcomp += chunk.compress(sourcefile, savefile, metadata_offset, dry_run=dry_run, debuggy=debuggy)
         if self.aftercompress_callback_obj is not None:
             self.aftercompress_callback_obj.compressed(totalcomp + self.header_size, dry_run=dry_run)
 

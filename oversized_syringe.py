@@ -1,58 +1,103 @@
 #!/usr/bin/python
 
-from ovsylib import cliparse, datastruct
+from ovsylib import cliparse, datastruct, fileadding_utils
 import os
 
 
-def main(cmdline):
-    with open(cmdline.file, "rb") as binfile:
-        pac = datastruct.pacfile()
-        pac.loadFromFile(binfile)
+def nonStaging(pac, cmdline, filename):
+    if cmdline.list:
+        pac.printInfo()
 
-        if cmdline.list:
-            pac.printInfo()
-        elif cmdline.list_harder:
-            pac.printDetailInfo()
-        elif cmdline.extract_id:
+    elif cmdline.list_harder:
+        pac.printDetailInfo()
+
+    elif cmdline.file_info:
+        file = pac.getFileById(cmdline.file_info)
+        if file is not None:
+            print("          id    offset       size  compress  size  filename")
+            file.printDetailInfo()
+
+    elif cmdline.extract_id:
+        with open(filename, "rb") as binfile:
             idlist = map(int, cmdline.extract_id.split(","))
             if cmdline.raw:
                 location = datastruct.adjustSeparatorForFS("raw-extract/")
                 if cmdline.extract:
-                    location = cmdline.extract_id
+                    location = cmdline.extract
                 for fid in idlist:
                     pac.dumpFileId(fid, location, binfile)
             else:
                 location = datastruct.adjustSeparatorForFS("extract/")
                 if cmdline.extract:
-                    location = cmdline.extract_id
+                    location = cmdline.extract
                 for fid in idlist:
                     pac.extractFileId(fid, location, binfile)
-        elif cmdline.extract:
+
+    elif cmdline.extract:
+        with open(filename, "rb") as binfile:
             for fid in range(len(pac.files)):
                 pac.extractFileId(fid, cmdline.extract, binfile)
-        elif cmdline.file_info:
-            file = pac.getFileById(cmdline.file_info)
-            if file is not None:
-                print("          id    offset       size  compress  size  filename")
-                file.printDetailInfo()
 
-        if cmdline.merge:
-            pass
-
-        if cmdline.test_add:
-            if os.path.isfile(cmdline.test_add_1):
-                newfile = datastruct.fileentry()
-                internalname = cmdline.test_add.replace("/","\\")
-                newfile.createFromFile(cmdline.test_add, cmdline.test_add, adjust_separator=True)
-                pac.appendFile(newfile)
-                pac.printInfo()
-                print("Added file \"" +  cmdline.test_add+ "\" as \"" + internalname + "\"; offset and compressed "
-                      "size will be determined at write-time")
+def main(cmdline):
+    sekai = fileadding_utils.staging()
+    docompress = not cmdline.no_compress
+    dryrun = cmdline.dry_run
+    # staging operations
+    if cmdline.stage:
+        if cmdline.add:
+            if os.path.isfile(cmdline.file):
+                if os.path.isdir(cmdline.base_dir):
+                    relpath = os.path.relpath(cmdline.file, cmdline.base_dir)
+                    newbie = sekai.addfile(relpath, cmdline.file, compression=docompress)
+                    if newbie:
+                        print("Added new file with name: " + datastruct.adjustSeparatorForPac(relpath))
+                    else:
+                        print("File " + datastruct.adjustSeparatorForPac(relpath) + " will be replaced")
+                else:
+                    print("directory \"" + cmdline.add + "\" si not valid")
             else:
-                print("cannot find file " + cmdline.test_add)
+                print("file \"" + cmdline.file + "\" not found")
+            sekai.saveEnviron()
+        elif cmdline.merge:
+            if os.path.isdir(cmdline.file):
+                sekai.addDirectory(cmdline.file, compression=docompress, verbose=True)
+            else:
+                print("directory \"" + cmdline.add + "\" si not valid")
+            sekai.saveEnviron()
+        elif cmdline.undo:
+            undid = sekai.undoFile(cmdline.file)
+            if not undid:
+                print("Warning: command had no effect (typo in filename?)")
+            sekai.saveEnviron()
+        elif cmdline.remove:
+            removed = sekai.removeFile(cmdline.file)
+            if not removed:
+                print("Warning: command had no effect (typo in filename?)")
+            sekai.saveEnviron()
+        elif cmdline.commit:
+            sekai.commit()
+            print("Commit completed")
+            sekai.saveEnviron()
+        elif cmdline.write:
+            sekai.writeout(cmdline.file, dry_run=dryrun)
+        elif cmdline.peek:
+            nonStaging(sekai.package, cmdline, sekai.target)
+        elif cmdline.list:
+            sekai.listInfo()
 
-        if cmdline.output:
-            pac.createCopy(binfile, cmdline.output, dry_run=cmdline.dry_run)
+        # other operations
+
+        elif cmdline.file: # targeting (initialize staging)
+            sekai.loadPackage(cmdline.file)
+            print("Staging environment initialized with target pacfile: " + sekai.target)
+            sekai.saveEnviron()
+
+    # non-staging operations
+    elif cmdline.file is not None:
+        pac = datastruct.pacfile()
+        with open(cmdline.file, "rb") as binfile:
+            pac.loadFromFile(binfile)
+        nonStaging(pac, cmdline, cmdline.file)
 
 
 if __name__ == '__main__':

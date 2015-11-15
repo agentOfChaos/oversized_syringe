@@ -2,6 +2,7 @@ import struct,os
 from ovsylib import datamover, compression
 import math
 import platform
+from operator import attrgetter
 
 intsize = 2
 longsize = 4
@@ -212,6 +213,7 @@ class pacfile:
             self.files.append(newfile)
 
     def theorizeMetadataOffset(self):
+        """ :return: metadata offset calculated from the current number of files"""
         return len(self.files) * ((7 * longsize) + 260) + (longsize * 3 + 8)
 
     def adjustMetaoffDisplace(self):
@@ -258,6 +260,23 @@ class pacfile:
         self.header.nfiles += 1
         self.metadata_offset = self.theorizeMetadataOffset()
         self.adjustMetaoffDisplace()
+
+    def removeFile(self, file):
+        if file in self.files:
+            self.rollbackMetaoffDisplace()
+            self.files.remove(file)
+            self.header.nfiles -= 1
+            self.metadata_offset = self.theorizeMetadataOffset()
+            self.adjustMetaoffDisplace()
+            self.refreshFileIDs()
+
+    def refreshFileIDs(self):
+        for file in self.files:
+            file.id = self.files.index(file)  # make sure ids are still consistent
+
+    def sortFiles(self):
+        self.files = sorted(self.files, key=attrgetter("name"))
+        self.refreshFileIDs()
 
     def createCopy(self, original, filename, dry_run=False):
         with open(filename, "wb") as updatedversion:

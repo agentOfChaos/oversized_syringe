@@ -125,9 +125,13 @@ def buildtree(root, cursor, bitstream):
             break
         # read the 'spacers'
         downleft_distance = 0
-        while bitstream[cursor] != False:
-            downleft_distance += 1
-            cursor += 1
+        try:
+            while bitstream[cursor] != False:
+                downleft_distance += 1
+                cursor += 1
+        except IndexError:
+            print("Tree parsing aborted: cursor at HEADER + %x, bit #%d" % (math.floor(cursor/8), cursor % 8))
+            return None, None
         cursor += 1
         # read the byte
         value = bitstream[cursor:cursor+8].tobytes()
@@ -140,12 +144,14 @@ def buildtree(root, cursor, bitstream):
 def uncompress(binfile, destfile, numbytes, bytes_out, debuggy=False):
     bitstream = bitarray.bitarray(endian="big")
     bitstream.frombytes(binfile.read(numbytes))
-
     cursor = 0
     root = TreeNode()
     bytes_written = 0
 
     root, cursor = buildtree(root, cursor, bitstream)
+    if root is None:
+        print("Tree construction failed, exiting")
+        return
 
     if debuggy:
         print("Tree parsing finished: cursor at HEADER + %x, bit #%d" % (math.floor(cursor/8), cursor % 8))
