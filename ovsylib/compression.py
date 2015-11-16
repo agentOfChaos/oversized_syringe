@@ -144,7 +144,7 @@ class chuunicomp:
         return totalcomp + 4
 
     def printInfo(self):
-        print("     Compression type: %02d , header size: %04x" % (self.chunk_num, self.header_size))
+        print("     Compression chunks: %d , header size: %04x" % (self.chunk_num, self.header_size))
         for chunk in self.chunks:
             print("     chunk #%03d: " % (self.chunks.index(chunk),), end="")
             chunk.printInfo()

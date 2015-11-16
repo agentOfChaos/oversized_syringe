@@ -26,7 +26,38 @@ is aimed at creating a stable and usable tool
 
     ./oversized_syringe.py -h
     
-TODO: description
+The command line tool has 2 usages:
+* Non-staging mode
+
+    For read-only operation of the archive, like listing its content and extracting specific/all files
+    
+* Staging mode
+
+    git-like interface for staging and applying modifications to an existing/new pac file. It must be
+    explicitly enabled via the *-S* option
+    
+    The usual workflow is something like this:
+    
+    * oversized_syringe.py -S PACFILE.pac
+        
+        Initialize the staging environment, the staged pac-object is a copy of PACFILE's content
+        
+    * oversized_syringe.py -S -a file/name.xyz
+    * oversized_syringe.py -S -m directory/
+    * oversized_syringe.py -S -r file/name.xyz
+    
+        Add a file (-a), merge a directory (-m), remove a file (-r)
+        
+    When you're done:
+    
+    * oversized_syringe.py -S -c
+    
+        Commit (-c) the modifies, meaning that the staged modifies will be applied to the staged pac-object
+    
+    * oversized_syringe.py -S -w NEWFILE.pac
+    
+        Finally, begin the compression of a new pacfile, using the previously build staged object as model.
+    
     
 ## GUI version
 
