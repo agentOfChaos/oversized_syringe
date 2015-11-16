@@ -96,7 +96,7 @@ class fileentry:
         if compress > 0:
             self.compressed = True
             self.compr_object = compression.chuunicomp()
-            self.compr_object.fromFutureImport(math.ceil(self.size / self.compr_object.chunksize))
+            self.compr_object.fromFutureImport(math.ceil(self.size / self.compr_object.default_chunksize))
 
     def _dump2file(self, fromfile, tofile):
         actual_len = self.size
@@ -149,7 +149,10 @@ class fileentry:
             updated.seek(begin_data_pos, 0)
             with open(self.import_from, "rb") as importfile:
                 if self.compressed:
-                    self.compr_object.compress(importfile, updated, dry_run=dry_run)
+                    print("Compresing %s (%d chunks) ..." % (self.name, self.compr_object.chunk_num), end="\r")
+                    self.comp_size = self.compr_object.compress(importfile, updated, dry_run=dry_run)
+                    print("Compressed %s : %d -> %d (%f)" %
+                          (self.name, self.size, self.comp_size, ((self.size - self.comp_size)*100) / self.size))
                 else:
                     if not dry_run:
                         datamover.dd(importfile, updated, 0, self.size)
@@ -157,7 +160,6 @@ class fileentry:
             # write back the file
             # we do that again, since the size of some file inbetween may have changed
             begin_data_pos = updated.tell()
-            old_offset = self.offset
             self.offset = begin_data_pos
             updated.seek(self.offset_writeback_location, 0)
             if not dry_run:

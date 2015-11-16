@@ -92,6 +92,9 @@ def main(cmdline):
             print("Staging environment initialized with target pacfile: " + sekai.target)
             sekai.saveEnviron()
 
+        else:
+            sekai.saveEnviron()
+
     # non-staging operations
     elif cmdline.file is not None:
         pac = datastruct.pacfile()

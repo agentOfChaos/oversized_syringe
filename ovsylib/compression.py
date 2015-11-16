@@ -15,11 +15,13 @@ def checksize(binfile):
 
 class algo1:
 
-    def __init__(self):
+    def __init__(self, id, size):
         self.uncomp_size = 0
         self.comp_size = 0
         self.rootaddress = 0
         self.header_write_back_offset = 0
+        self.id = id
+        self.size = size
 
     def loadSubHeaderFromFile(self, binfile):
         self.uncomp_size = struct.unpack("I", binfile.read(intsize))[0]
@@ -39,10 +41,15 @@ class algo1:
 
     def compress(self, sourcefile, savefile, metadata_offset, dry_run=False, debuggy=False):
         """ :return: number of compressed bytes """
-        bytes_uncomp = checksize(sourcefile)
-        self.uncomp_size = bytes_uncomp
+        total_filesize = checksize(sourcefile)
+        self.uncomp_size = self.size
+        if (self.size * (self.id + 1)) > total_filesize:
+            self.uncomp_size = total_filesize - (self.size * self.id)
         self.rootaddress = savefile.tell() - metadata_offset
-        bytes_out = yggdrasil.compress(sourcefile, savefile, dry_run=dry_run, debuggy=debuggy)
+        bytes_out = yggdrasil.compress(sourcefile, savefile,
+                                       self.size * self.id,
+                                       (self.size * self.id) + self.uncomp_size,
+                                       dry_run=dry_run, debuggy=debuggy)
         afterwrite_offset = savefile.tell()
 
         # now re-create a fresh sub header
@@ -74,12 +81,12 @@ class after_comp_callback:
 
 class chuunicomp:
 
-    chunksize = 0x20000
+    default_chunksize = 0x20000
 
     def __init__(self):
         self.magicseq = 0
         self.chunk_num = 0
-        self.const2 = 0
+        self.chunksize = 0
         self.header_size = 0
         self.chunks = []
         self.aftercompress_callback_obj = None
@@ -90,22 +97,21 @@ class chuunicomp:
             print("magic sequence: %x" % self.magicseq)
         assert self.magicseq == 0x1234
         self.chunk_num = struct.unpack("I", binfile.read(intsize))[0]
-        self.const2 = struct.unpack("I", binfile.read(intsize))[0]
-        assert self.const2 == 0x20000
+        self.chunksize = struct.unpack("I", binfile.read(intsize))[0]
         self.header_size = struct.unpack("I", binfile.read(intsize))[0]
         self.chunks = self.prepareChunks(binfile)
 
     def fromFutureImport(self, chunksnum):
         self.magicseq = 0x1234
         self.chunk_num = chunksnum
-        self.const2 = 0x20000
+        self.chunksize = self.default_chunksize
         self.chunks = self.prepareChunks(None)
         self.header_size = (4 + (3 * chunksnum)) * 4
 
     def prepareChunks(self, binfile=None):
         body = []
         for i in range(self.chunk_num):
-            piece = algo1()
+            piece = algo1(i, self.chunksize)
             if binfile is not None:
                 piece.loadSubHeaderFromFile(binfile)
             body.append(piece)
@@ -122,7 +128,7 @@ class chuunicomp:
         if not dry_run:
             savefile.write(struct.pack("I", self.magicseq))
             savefile.write(struct.pack("I", self.chunk_num))
-            savefile.write(struct.pack("I", self.const2))
+            savefile.write(struct.pack("I", self.chunksize))
             savefile.write(struct.pack("I", self.header_size))
 
     def compress(self, sourcefile, savefile, dry_run=False, debuggy=False):
@@ -135,6 +141,7 @@ class chuunicomp:
             totalcomp += chunk.compress(sourcefile, savefile, metadata_offset, dry_run=dry_run, debuggy=debuggy)
         if self.aftercompress_callback_obj is not None:
             self.aftercompress_callback_obj.compressed(totalcomp + self.header_size, dry_run=dry_run)
+        return totalcomp + 4
 
     def printInfo(self):
         print("     Compression type: %02d , header size: %04x" % (self.chunk_num, self.header_size))

@@ -154,7 +154,7 @@ def uncompress(binfile, destfile, numbytes, bytes_out, debuggy=False):
         return
 
     if debuggy:
-        print("Tree parsing finished: cursor at HEADER + %x, bit #%d" % (math.floor(cursor/8), cursor % 8))
+        print("Tree parsing finished: cursor at %x, bit #%d" % (math.floor(cursor/8), cursor % 8))
         tree2dot(root, "debugtree.dot")
 
     while bytes_written < bytes_out:
@@ -163,8 +163,8 @@ def uncompress(binfile, destfile, numbytes, bytes_out, debuggy=False):
             try:
                 chu = bitstream[cursor]
             except IndexError:
-                print("Data parsing aborted: end of bitstream (%d/%d bytes written)"
-                      % (bytes_written, bytes_out))
+                print("Data parsing aborted: end of bitstream, cursor at %x, bit #%d (%d/%d bytes written)"
+                      % (math.floor(cursor/8), cursor % 8, bytes_written, bytes_out))
                 return
             cursor += 1
             if chu == False:
@@ -174,16 +174,18 @@ def uncompress(binfile, destfile, numbytes, bytes_out, debuggy=False):
         destfile.write(tarzan.value)
         bytes_written += 1
 
-def collectBytes(Lb, multib, sourcefile):
-    sourcefile.seek(0, 0)
+def collectBytes(Lb, multib, sourcefile, start_offs, end_offs):
+    sourcefile.seek(start_offs, 0)
     readbyte = sourcefile.read(1)
-    while readbyte:
+    target_read = 0
+    while readbyte and (target_read < (end_offs - start_offs)):
         if readbyte not in Lb:
             Lb.append(readbyte)
             multib[readbyte] = 1
         else:
             multib[readbyte] += 1
         readbyte = sourcefile.read(1)
+        target_read += 1
 
 def evalCost(num, Lb, multib, offset, depth):
     sum = 0
@@ -264,7 +266,7 @@ def buildpercentb(Lb, multib, percentb):
     for k,v in multib.items():
         percentb[k] = float(v / total)
 
-def buildOkTree(sourcefile):
+def buildOkTree(sourcefile, start_offs, end_offs):
     Lb = []
     multib = {}
     percentb = {}
@@ -276,7 +278,7 @@ def buildOkTree(sourcefile):
             summa += percentb[e]
         return summa
     root = TreeNode()
-    collectBytes(Lb, multib, sourcefile)
+    collectBytes(Lb, multib, sourcefile, start_offs, end_offs)
     buildpercentb(Lb, multib, percentb)
     Lb = sorted(Lb, key=keyfun, reverse=True)
     active_node = root
@@ -305,7 +307,7 @@ def buildOkTree(sourcefile):
 
     return root
 
-def compress(sourcefile, destfile, dry_run=False, debuggy=False):
+def compress(sourcefile, destfile, start_offs, end_offs, dry_run=False, debuggy=False):
     """ :return: number of bytes written """
     lookup_table = {}
     vecbuild_path = bitarray.bitarray(endian="big")
@@ -335,8 +337,8 @@ def compress(sourcefile, destfile, dry_run=False, debuggy=False):
             build_vector_tree(node.childzero)
             build_vector_tree(node.childone)
 
-    tree = buildOkTree(sourcefile)
-    sourcefile.seek(0)
+    tree = buildOkTree(sourcefile, start_offs, end_offs)
+    sourcefile.seek(start_offs)
 
     if debuggy:
         tree2dot(tree, "optimumtree.dot")
@@ -344,13 +346,15 @@ def compress(sourcefile, destfile, dry_run=False, debuggy=False):
     build_vector_tree(tree)
 
     datum = sourcefile.read(1)
-    while datum:
+    target_read = 0
+    while datum and (target_read < (end_offs - start_offs)):
         if datum not in lookup_table.keys():
             build_lookup_table(tree, bitarray.bitarray(endian="big"), datum)
         out_bitstream.extend(lookup_table[datum])
         datum = sourcefile.read(1)
+        target_read += 1
 
-    destfile.write(out_bitstream.tobytes())
+    if not dry_run:
+        destfile.write(out_bitstream.tobytes())
 
-    print("compression, done")
     return out_bitstream.buffer_info()[1]  # length in bytes (I hope)

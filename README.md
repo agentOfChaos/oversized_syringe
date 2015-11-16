@@ -34,12 +34,11 @@ not yet developed
 
 # Roadmap
 
-1. Creation of entirely new package files
-2. Extensive testing
-3. GUI
-4. Speed improvement
-5. Better compression algorithm
-6. Support for other OSes
+1. Extensive testing
+2. Better compression algorithm
+3. Speed improvement (parallelization and whatnot)
+4. GUI
+5. Test support for other OSes
 
 # Thanks to
 

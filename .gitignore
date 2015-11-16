@@ -63,3 +63,4 @@ extract/
 *.bak
 *.pac
 *.txt
+.ovs_staging
