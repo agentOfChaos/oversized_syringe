@@ -338,8 +338,8 @@ def buildHuffmanTree(sourcefile, start_offs, end_offs):
 
     return nodemap[0][1]
 
-def compress(sourcefile, destfile, start_offs, end_offs, dry_run=False, debuggy=False):
-    """ :return: number of bytes written """
+def compress(sourcefile, start_offs, end_offs, debuggy=False):
+    """ :return: bitarray object containing the compressed data """
     lookup_table = {}
     vecbuild_path = bitarray.bitarray(endian="big")
     out_bitstream = bitarray.bitarray(endian="big")
@@ -385,7 +385,7 @@ def compress(sourcefile, destfile, start_offs, end_offs, dry_run=False, debuggy=
         datum = sourcefile.read(1)
         target_read += 1
 
-    if not dry_run:
-        destfile.write(out_bitstream.tobytes())
+    #if not dry_run:
+    #    destfile.write(out_bitstream.tobytes())
 
-    return out_bitstream.buffer_info()[1]  # length in bytes (I hope)
+    return out_bitstream#out_bitstream.buffer_info()[1]  # TODO: also return out_bitstream.tobytes(), write outside

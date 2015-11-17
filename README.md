@@ -66,7 +66,7 @@ not yet developed
 # Roadmap
 
 1. Extensive testing
-2. Speed improvement (parallelization and whatnot)
+2. Multicore parallel de-compression
 3. GUI
 4. Test support for other OSes
 

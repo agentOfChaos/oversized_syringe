@@ -72,7 +72,7 @@ class fileentry:
         self.compr_object = None
         self.comp_size = 0
         self.import_from = ""
-        self.origin_offset = None
+        self.origin_offset = None  # used to get data from those entries which are not imported ex-novo into the pac
         self.offset_writeback_location = 0
 
     def loadMetaData(self, binfile):
@@ -147,14 +147,14 @@ class fileentry:
             if not dry_run:
                 updated.write(struct.pack("I", self.offset - metadata_offset))
             updated.seek(begin_data_pos, 0)
-            with open(self.import_from, "rb") as importfile:
-                if self.compressed:
-                    print("Compresing %s (%d chunks) ..." % (self.name, self.compr_object.chunk_num), end="\r")
-                    self.comp_size = self.compr_object.compress(importfile, updated, dry_run=dry_run, debuggy=debuggy)
-                    print("Compressed %s : %d -> %d (%f)" %
-                          (self.name, self.size, self.comp_size, ((self.size - self.comp_size)*100) / self.size))
-                else:
-                    if not dry_run:
+            if self.compressed:
+                print("Compressing %s (%d chunks) ..." % (self.name, self.compr_object.chunk_num), end="\r")
+                self.comp_size = self.compr_object.compress(self.import_from, updated, dry_run=dry_run, debuggy=debuggy)
+                print("Compressed %s : %d -> %d (%f)" %
+                      (self.name, self.size, self.comp_size, ((self.size - self.comp_size)*100) / self.size))
+            else: #uncompressed file: copy it byte by byte
+                if not dry_run:
+                    with open(self.import_from, "rb") as importfile:
                         datamover.dd(importfile, updated, 0, self.size)
         else:
             # write back the file

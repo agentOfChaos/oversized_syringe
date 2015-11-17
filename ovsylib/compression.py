@@ -1,6 +1,8 @@
 import struct
 import os
 from ovsylib.compresion_algos import yggdrasil
+from ovsylib.aggressive_threading import Broker
+from threading import Thread
 
 intsize = 4
 
@@ -22,6 +24,7 @@ class algo1:
         self.header_write_back_offset = 0
         self.id = id
         self.size = size
+        self.bitstream = None
 
     def loadSubHeaderFromFile(self, binfile):
         self.uncomp_size = struct.unpack("I", binfile.read(intsize))[0]
@@ -39,26 +42,30 @@ class algo1:
             savefile.write(struct.pack("I", self.comp_size))
             savefile.write(struct.pack("I", self.rootaddress))
 
-    def compress(self, sourcefile, savefile, metadata_offset, dry_run=False, debuggy=False):
-        """ :return: number of compressed bytes """
+    def writeToFile(self, savefile, metadata_offset, dry_run=False):
+        """ actually writes out the compressed data. Can be run only after compress """
+        assert self.bitstream is not None
+        self.rootaddress = savefile.tell() - metadata_offset
+        savefile.write(self.bitstream.tobytes())
+        afterwrite_offset = savefile.tell()
+        savefile.seek(self.header_write_back_offset, 0)
+        self.writeSubHeader(savefile, dry_run=dry_run)
+        savefile.seek(afterwrite_offset, 0)
+        self.bitstream = None  # free memory
+
+    def compress(self, sourcefile, debuggy=False):
+        """ this method can be parallelized, given different file handles to the various threads
+        :return: self """
         total_filesize = checksize(sourcefile)
         self.uncomp_size = self.size
         if (self.size * (self.id + 1)) > total_filesize:
             self.uncomp_size = total_filesize - (self.size * self.id)
-        self.rootaddress = savefile.tell() - metadata_offset
-        bytes_out = yggdrasil.compress(sourcefile, savefile,
+        self.bitstream = yggdrasil.compress(sourcefile,
                                        self.size * self.id,
                                        (self.size * self.id) + self.uncomp_size,
-                                       dry_run=dry_run, debuggy=debuggy)
-        afterwrite_offset = savefile.tell()
-
-        # now re-create a fresh sub header
-        self.comp_size = bytes_out
-
-        savefile.seek(self.header_write_back_offset, 0)
-        self.writeSubHeader(savefile, dry_run=dry_run)
-        savefile.seek(afterwrite_offset, 0)
-        return self.comp_size
+                                       debuggy=debuggy)
+        self.comp_size = self.bitstream.buffer_info()[1]
+        return self
 
     def printInfo(self):
         print("partial comp size: %d ; partial uncomp size: %d ; relative root address: %x"
@@ -66,6 +73,8 @@ class algo1:
 
 
 class after_comp_callback:
+    """ used as a callback to fill the 'compressed size' value in places where it was
+    needed, but we didn't know it yet """
 
     def __init__(self, address, binfile):
         self.address = address
@@ -77,6 +86,12 @@ class after_comp_callback:
         if not dry_run:
             self.binfile.write(struct.pack("I", length))
         self.binfile.seek(savedpos, 0)
+
+
+# need to be standalone, for multiprocess to pickle it
+def spawn(chunk, sourcefile_name, debuggy):
+    with open(sourcefile_name, "rb") as sourcefile:
+        return chunk.compress(sourcefile, debuggy=debuggy)
 
 
 class chuunicomp:
@@ -118,7 +133,8 @@ class chuunicomp:
         return body
 
     def decompress(self, binfile, savefile, debuggy=False):
-        # we don't read the header at compression time, since we have already acquired the data
+        """ we don't read the header at decompression time, since we have already acquired the data
+        via fromBinfile(). Hence we simply skip the header """
         binfile.seek(self.header_size, 1)
         metadata_offset = binfile.tell()
         for chunk in self.chunks:
@@ -131,14 +147,32 @@ class chuunicomp:
             savefile.write(struct.pack("I", self.chunksize))
             savefile.write(struct.pack("I", self.header_size))
 
-    def compress(self, sourcefile, savefile, dry_run=False, debuggy=False):
+    def compress(self, sourcefile_name, savefile, dry_run=False, debuggy=False):
+        """ run the compression algorithm for each chunk, in parallel. Note that the
+        caller has the duty to set the file seek in the right position before calling this. """
         totalcomp = 0
+        threads = Broker(len(self.chunks), debugmode=debuggy, greed=1)
+
+        def spawnAll(chunklist):
+            for chunk in chunklist:
+                threads.appendNfire(spawn, (chunk, sourcefile_name, debuggy))
+
         self.writeHeader(savefile, dry_run=dry_run)
         for chunk in self.chunks:
             chunk.writeSubHeader(savefile, dry_run=dry_run)
         metadata_offset = savefile.tell()
-        for chunk in self.chunks:
-            totalcomp += chunk.compress(sourcefile, savefile, metadata_offset, dry_run=dry_run, debuggy=debuggy)
+
+        # this thread will feed the broker with tasks
+        Thread(target=spawnAll, args=(self.chunks,)).start()
+
+        # gather all the results, write them in sequence
+        collected = 0
+        while collected < len(self.chunks):
+            for partial in threads.collect():
+                totalcomp += partial.bitstream.buffer_info()[1]
+                partial.writeToFile(savefile, metadata_offset, dry_run=dry_run)
+                collected += 1
+        threads.stop()
         if self.aftercompress_callback_obj is not None:
             self.aftercompress_callback_obj.compressed(totalcomp + self.header_size, dry_run=dry_run)
         return totalcomp + 4
