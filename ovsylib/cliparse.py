@@ -12,7 +12,8 @@ def parsecli():
     parser.add_argument('--file-info', metavar='id', help='print detailed information about a specific file', type=int)
     parser.add_argument('--dry-run', '-D', help='Applies to packing, not unpacking; do everything, create files/'
                         'directories, except nothing is actually written', action='store_true')
-
+    parser.add_argument('--debug', help='Turn debug messages on; also, save eventual huffman trees to dot files',
+                        action="store_true")
     parser.add_argument('--no-compress', '-N', help='do not compress added files', action='store_true')
 
     parser.add_argument('--stage', '-S', help='engage staging mode (git-like modification environment); '

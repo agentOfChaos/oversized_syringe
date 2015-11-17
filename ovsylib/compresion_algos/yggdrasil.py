@@ -8,7 +8,8 @@ Note: the data structures aren't aligned at all, meaning we'll have to parse it 
 ([algo1 header] actually handled elsewhere, this code deals with data starting in the next area)
 [vectorized tree]
 [compressed data]
-
+Basically, it employs Huffman coding. I called it Yggdrasil because I didn't know about HC yet,
+but I knew data structures.
 
 vectorialized tree structure:
 
@@ -64,6 +65,7 @@ class TreeNode:
         return self.bilateralExpand()[0]
 
     def bilateralExpand(self):
+        """ append a left (zero) and right (one) child, return a list containing both """
         self.isActive = False
         self.isleaf = False
         self.childzero = TreeNode()
@@ -86,7 +88,6 @@ class TreeNode:
         deepright = self.childone.findFirstActive()
         if deepright is not None:
             return deepright
-
         return None
 
 
@@ -307,6 +308,36 @@ def buildOkTree(sourcefile, start_offs, end_offs):
 
     return root
 
+def buildHuffmanTree(sourcefile, start_offs, end_offs):
+    Lb = []
+    multib = {}
+    nodemap = []
+    def keyfun(elem):
+        return multib[elem]
+    collectBytes(Lb, multib, sourcefile, start_offs, end_offs)
+    Lb = sorted(Lb, key=keyfun)
+
+    for b in Lb:
+        nn = TreeNode()
+        nn.setValue(b)
+        nodemap.append((b, nn, multib[b]))
+
+    while len(nodemap) > 1:
+        uno = nodemap.pop(0)
+        due = nodemap.pop(0)
+        radix = TreeNode()
+        radix.childzero = uno[1]
+        radix.childone = due[1]
+        newcost = uno[2] + due[2]
+        i = 0
+        while i < len(nodemap):
+            if nodemap[i][2] > newcost:
+                break
+            i += 1
+        nodemap.insert(i, (0, radix, newcost))
+
+    return nodemap[0][1]
+
 def compress(sourcefile, destfile, start_offs, end_offs, dry_run=False, debuggy=False):
     """ :return: number of bytes written """
     lookup_table = {}
@@ -337,7 +368,7 @@ def compress(sourcefile, destfile, start_offs, end_offs, dry_run=False, debuggy=
             build_vector_tree(node.childzero)
             build_vector_tree(node.childone)
 
-    tree = buildOkTree(sourcefile, start_offs, end_offs)
+    tree = buildHuffmanTree(sourcefile, start_offs, end_offs)
     sourcefile.seek(start_offs)
 
     if debuggy:

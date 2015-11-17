@@ -90,12 +90,12 @@ class staging:
         self.deletes = []
         self.appends = []
 
-    def writeout(self, destination, dry_run=False):
+    def writeout(self, destination, dry_run=False, debuggy=False):
         if self.target != "":
             with open(self.target, "rb") as origin:
-                self.package.createCopy(origin, destination, dry_run=dry_run)
+                self.package.createCopy(origin, destination, dry_run=dry_run, debuggy=debuggy)
         else:
-            self.package.createCopy(None, destination, dry_run=dry_run)
+            self.package.createCopy(None, destination, dry_run=dry_run, debuggy=debuggy)
         if not dry_run:
             self.clearEnviron()
 

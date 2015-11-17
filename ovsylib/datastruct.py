@@ -109,12 +109,12 @@ class fileentry:
         with open(location, "wb") as savefile:
             self._dump2file(binfile, savefile)
 
-    def extractMyself(self, location, binfile):
+    def extractMyself(self, location, binfile, debuggy=False):
         print(repr(location))
         with open(location, "wb") as savefile:
             if self.compressed:
                 binfile.seek(self.offset, 0)
-                self.compr_object.decompress(binfile, savefile)
+                self.compr_object.decompress(binfile, savefile, debuggy=debuggy)
             else:
                 self._dump2file(binfile, savefile)
 
@@ -137,7 +137,7 @@ class fileentry:
             self.offset_writeback_location = updated.tell()
             updated.write(struct.pack("I", self.offset))
 
-    def updateMyself(self, original, updated, metadata_offset, dry_run=False):
+    def updateMyself(self, original, updated, metadata_offset, dry_run=False, debuggy=False):
         if self.import_from != "":
             # if is a new file, compress it and write the result to the .pac
             # we didn't know the offset yet, so we must make a step back and fix this
@@ -150,7 +150,7 @@ class fileentry:
             with open(self.import_from, "rb") as importfile:
                 if self.compressed:
                     print("Compresing %s (%d chunks) ..." % (self.name, self.compr_object.chunk_num), end="\r")
-                    self.comp_size = self.compr_object.compress(importfile, updated, dry_run=dry_run)
+                    self.comp_size = self.compr_object.compress(importfile, updated, dry_run=dry_run, debuggy=debuggy)
                     print("Compressed %s : %d -> %d (%f)" %
                           (self.name, self.size, self.comp_size, ((self.size - self.comp_size)*100) / self.size))
                 else:
@@ -248,10 +248,10 @@ class pacfile:
         fullpath = self.createDestination(fid, destination)
         file.dumpMyself(fullpath, binfile)
 
-    def extractFileId(self, fid, destination, binfile):
+    def extractFileId(self, fid, destination, binfile, debuggy=False):
         file = self.getFileById(fid)
         fullpath = self.createDestination(fid, destination)
-        file.extractMyself(fullpath, binfile)
+        file.extractMyself(fullpath, binfile, debuggy=debuggy)
 
     def appendFile(self, file):
         """ The file is appended on the bottom, so the other files' offsets have to be
@@ -280,13 +280,13 @@ class pacfile:
         self.files = sorted(self.files, key=attrgetter("name"))
         self.refreshFileIDs()
 
-    def createCopy(self, original, filename, dry_run=False):
+    def createCopy(self, original, filename, dry_run=False, debuggy=False):
         with open(filename, "wb") as updatedversion:
             self.header.writeMetaData(updatedversion, dry_run=dry_run)
             for file in self.files:
                 file.writeMetadata(updatedversion, dry_run=dry_run)
             for file in self.files:
-                file.updateMyself(original, updatedversion, self.metadata_offset, dry_run=dry_run)
+                file.updateMyself(original, updatedversion, self.metadata_offset, dry_run=dry_run, debuggy=debuggy)
 
     def searchFile(self, name, exact_match=True, adjust_separator=True):
         """ :return: list of file ids """

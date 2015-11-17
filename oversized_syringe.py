@@ -31,12 +31,12 @@ def nonStaging(pac, cmdline, filename):
                 if cmdline.extract:
                     location = cmdline.extract
                 for fid in idlist:
-                    pac.extractFileId(fid, location, binfile)
+                    pac.extractFileId(fid, location, binfile, debuggy=cmdline.debug)
 
     elif cmdline.extract:
         with open(filename, "rb") as binfile:
             for fid in range(len(pac.files)):
-                pac.extractFileId(fid, cmdline.extract, binfile)
+                pac.extractFileId(fid, cmdline.extract, binfile, debuggy=cmdline.debug)
 
 def main(cmdline):
     sekai = fileadding_utils.staging()
@@ -79,7 +79,7 @@ def main(cmdline):
             print("Commit completed")
             sekai.saveEnviron()
         elif cmdline.write:
-            sekai.writeout(cmdline.file, dry_run=dryrun)
+            sekai.writeout(cmdline.file, dry_run=dryrun, debuggy=cmdline.debug)
         elif cmdline.peek:
             nonStaging(sekai.package, cmdline, sekai.target)
         elif cmdline.list:

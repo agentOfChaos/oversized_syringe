@@ -66,10 +66,9 @@ not yet developed
 # Roadmap
 
 1. Extensive testing
-2. Better compression algorithm
-3. Speed improvement (parallelization and whatnot)
-4. GUI
-5. Test support for other OSes
+2. Speed improvement (parallelization and whatnot)
+3. GUI
+4. Test support for other OSes
 
 # Thanks to
 
