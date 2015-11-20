@@ -1,4 +1,4 @@
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, Manager, cpu_count
 from threading import Semaphore
 from queue import Queue
 import math
@@ -6,8 +6,10 @@ import math
 def getMaxThreads():
     return cpu_count()
 
-def worker(func, args):
-    return func(*args)
+def worker(func, args, sem):
+    ret = func(*args)
+    sem.release()
+    return ret
 
 class Broker:
 
@@ -22,7 +24,7 @@ class Broker:
         self.threadcontrol = Queue()
         self.pool = Pool(processes=self.maxthreads)
         self.unid = 0
-        self.freespots = Semaphore(self.maxthreads)
+        self.freespots = Manager().Semaphore(self.maxthreads)
 
     def appendNfire(self, func, args):
         """ launch (runs in a subprocess) a function func, with arguments specified in the tuple args """
@@ -30,7 +32,7 @@ class Broker:
         assert isinstance(args, tuple)
         if self.debugmode:
             print("Spawning thread #%d" % self.unid)
-        r = self.pool.apply_async(worker, [func, args])
+        r = self.pool.apply_async(worker, [func, args, self.freespots])
         self.threadcontrol.put((self.unid, r))
         self.unid += 1
 
@@ -41,7 +43,6 @@ class Broker:
             cnt = self.threadcontrol.get()
             r = cnt[1]
             res = r.get()
-            self.freespots.release()
             if self.debugmode:
                 print("Collecting thread #%d" % cnt[0])
             yield res

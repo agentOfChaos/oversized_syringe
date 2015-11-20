@@ -80,9 +80,8 @@ not yet developed
 # Roadmap
 
 1. Extensive testing
-2. Multicore parallel de-compression
-3. GUI
-4. Test support for other OSes
+2. GUI
+3. Test support for other OSes
 
 # Thanks to
 

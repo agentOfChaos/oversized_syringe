@@ -1,7 +1,13 @@
 #!/usr/bin/python
 
 from ovsylib import cliparse, datastruct, fileadding_utils
+from ovsylib.aggressive_threading import Broker
 import os
+
+
+def extractJob(pac, fid, cmdline, filename):
+    with open(filename, "rb") as binfile:
+        pac.extractFileId(fid, cmdline.extract, binfile, debuggy=cmdline.debug)
 
 
 def nonStaging(pac, cmdline, filename):
@@ -34,9 +40,11 @@ def nonStaging(pac, cmdline, filename):
                     pac.extractFileId(fid, location, binfile, debuggy=cmdline.debug)
 
     elif cmdline.extract:
-        with open(filename, "rb") as binfile:
-            for fid in range(len(pac.files)):
-                pac.extractFileId(fid, cmdline.extract, binfile, debuggy=cmdline.debug)
+        threads = Broker(len(pac.files))
+        for fid in range(len(pac.files)):
+            threads.appendNfire(extractJob, (pac, fid, cmdline, filename))
+        threads.stop()
+        print("Extraction job completed")
 
 def main(cmdline):
     sekai = fileadding_utils.staging()

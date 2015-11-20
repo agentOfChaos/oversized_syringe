@@ -105,12 +105,12 @@ class fileentry:
         datamover.dd(fromfile, tofile, self.offset, actual_len)
 
     def dumpMyself(self, location, binfile):
-        print(repr(location))
+        print("Dumping %s to %s" % (self.name, location))
         with open(location, "wb") as savefile:
             self._dump2file(binfile, savefile)
 
     def extractMyself(self, location, binfile, debuggy=False):
-        print(repr(location))
+        print("Extracting %s to %s" % (self.name, location))
         with open(location, "wb") as savefile:
             if self.compressed:
                 binfile.seek(self.offset, 0)
