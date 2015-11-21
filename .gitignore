@@ -59,6 +59,7 @@ target/
 # Custom
 .idea/
 extract/
+test/
 *.dot
 *.bak
 *.pac

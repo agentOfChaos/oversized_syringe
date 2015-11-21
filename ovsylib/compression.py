@@ -15,6 +15,10 @@ def checksize(binfile):
     return size
 
 
+class BadMagicNum(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 class algo1:
 
     def __init__(self, id, size):
@@ -108,13 +112,12 @@ class chuunicomp:
 
     def fromBinfile(self, binfile):
         self.magicseq = struct.unpack("I", binfile.read(intsize))[0]
-        if self.magicseq != 0x1234:
-            print("magic sequence: %x" % self.magicseq)
-        assert self.magicseq == 0x1234
         self.chunk_num = struct.unpack("I", binfile.read(intsize))[0]
         self.chunksize = struct.unpack("I", binfile.read(intsize))[0]
         self.header_size = struct.unpack("I", binfile.read(intsize))[0]
         self.chunks = self.prepareChunks(binfile)
+        if self.magicseq != 0x1234:
+            raise BadMagicNum(self.magicseq)
 
     def fromFutureImport(self, chunksnum):
         self.magicseq = 0x1234

@@ -86,6 +86,14 @@ class fileentry:
             self.compressed = True
         self.offset = data[4]
 
+    def loadCompressionInfo(self, binfile):
+        binfile.seek(self.offset)
+        self.compr_object = compression.chuunicomp()
+        try:
+            self.compr_object.fromBinfile(binfile)
+        except compression.BadMagicNum as e:
+            print("Warning: bad magic sequence (%x) in file %s" % (int(str(e)), self.name))
+
     def createFromFile(self, name, filepath, compress=True, adjust_separator=True):
         if adjust_separator:
             self.name = adjustSeparatorForPac(name)
@@ -171,11 +179,6 @@ class fileentry:
                     actual_len = self.comp_size
                 datamover.dd(original, updated, self.origin_offset, actual_len)
 
-    def loadCompressionInfo(self, binfile):
-        binfile.seek(self.offset)
-        self.compr_object = compression.chuunicomp()
-        self.compr_object.fromBinfile(binfile)
-
     def adjustOffset(self, addendum):
         if self.origin_offset is None:
             self.origin_offset = self.offset + addendum
@@ -228,7 +231,8 @@ class pacfile:
 
     def loadCompressionInfo(self, binfile):
         for f in self.files:
-            f.loadCompressionInfo(binfile)
+            if f.compressed:
+                f.loadCompressionInfo(binfile)
 
     def getFileById(self, fid):
         for f in self.files:
@@ -236,28 +240,39 @@ class pacfile:
                 return f
         return None
 
+    def listFileIDs(self):
+        ids = []
+        for f in self.files:
+            ids.append(f.id)
+        return ids
+
     def createDestination(self, fid, destination):
         file = self.getFileById(fid)
         fname = adjustSeparatorForFS(file.name)
-        fullpath = os.path.join(destination, fname)
+        fullpath = os.path.join(os.getcwd(), os.path.join(destination, fname))
         os.makedirs(os.path.dirname(fullpath), exist_ok=True)
         return fullpath
 
     def dumpFileId(self, fid, destination, binfile):
+        """ do not decompress extracted file."""
         file = self.getFileById(fid)
         fullpath = self.createDestination(fid, destination)
         file.dumpMyself(fullpath, binfile)
 
     def extractFileId(self, fid, destination, binfile, debuggy=False):
+        """ it's the actual file to decide if run decompres, based on metadata """
         file = self.getFileById(fid)
         fullpath = self.createDestination(fid, destination)
         file.extractMyself(fullpath, binfile, debuggy=debuggy)
 
-    def appendFile(self, file):
+    def appendFile(self, file, start_id=0):
         """ The file is appended on the bottom, so the other files' offsets have to be
          updated only for what concerns the growth of the metadata """
         self.rollbackMetaoffDisplace()
-        file.id = len(self.files)
+        if len(self.files) > 0:
+            file.id = max(self.listFileIDs()) + 1
+        else:
+            file.id = start_id
         self.files.append(file)
         self.header.nfiles += 1
         self.metadata_offset = self.theorizeMetadataOffset()
@@ -272,13 +287,13 @@ class pacfile:
             self.adjustMetaoffDisplace()
             self.refreshFileIDs()
 
-    def refreshFileIDs(self):
+    def refreshFileIDs(self, start_id=0):
         for file in self.files:
-            file.id = self.files.index(file)  # make sure ids are still consistent
+            file.id = self.files.index(file) + start_id  # make sure ids are still consistent
 
-    def sortFiles(self):
+    def sortFiles(self, start_id=0):
         self.files = sorted(self.files, key=attrgetter("name"))
-        self.refreshFileIDs()
+        self.refreshFileIDs(start_id=start_id)
 
     def createCopy(self, original, filename, dry_run=False, debuggy=False):
         with open(filename, "wb") as updatedversion:

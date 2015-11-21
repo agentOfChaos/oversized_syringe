@@ -15,6 +15,14 @@ I was able to un-compress the files by using QuickBMS (which you should also che
 
 The file's directory and compression formats are pretty much understood now (I'd say 99.9%); the developement is now aimed at creating a stable and usable tool
 
+# Correctness
+
+I tried unpacking and repacking some of the game's archives for testing purposes, here's the results:
+* The original game file and the rebuilt version have the same size in bytes, however, the internal
+    structure is a tad bit different, and thus they have different checksums
+* Anyway, after unpacking, the recursive checksums of the extracted folders do match
+* TODO: test it against the actual game
+
 # Usage
 
 ## CLI version
@@ -37,7 +45,7 @@ The usual workflow is something like this:
         
 Initialize the staging environment, the staged pac-object is a copy of PACFILE's content.
 If you want to create a wholly new pacfile, run:
-oversized_syringe.py -S
+    oversized_syringe.py -S
         
         
     oversized_syringe.py -S -a file/name.xyz
@@ -81,7 +89,8 @@ not yet developed
 
 1. Extensive testing
 2. GUI
-3. Test support for other OSes
+3. .cpk file support
+4. Test support for other OSes
 
 # Thanks to
 

@@ -17,9 +17,12 @@ def parsecli():
     parser.add_argument('--no-compress', '-N', help='do not compress added files', action='store_true')
 
     parser.add_argument('--stage', '-S', help='engage staging mode (git-like modification environment); '
-                        'if you provide a pac file name, it will be used as a base for future modifies;'
-                        ' otherwise (no parameters), a fresh new pacfile will be created',
+                        'if no further staging commands are specified, a staging environment will be '
+                        'initialized, either empty or from a provided .pac file name',
                         action='store_true')
+    parser.add_argument('--offset', '-O', help='(staging only) only used when initializing an empty staging '
+                        'environment. Set the file id to start counting from',
+                        type=int, default=0)
     parser.add_argument('--add', '-a', help='(staging only) stage add a file; if a base-directory is'
                         ' specified, the file\'s internal name will be calculated relatively to said path',
                         action='store_true')

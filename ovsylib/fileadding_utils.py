@@ -20,6 +20,7 @@ class staging:
     def __init__(self):
         self.package = datastruct.pacfile()
         self.target = ""
+        self.start_id = 0
         self.deletes = []
         self.appends = []
         if os.path.isfile(environ_name):
@@ -29,6 +30,7 @@ class staging:
         with open(path, "rb") as binfile:
             self.target = path
             self.package.loadFromFile(binfile)
+            self.start_id = min(self.package.listFileIDs())
 
     def addfile(self, internal_name, path, compression=True):
         collisions = self.package.searchFile(internal_name)
@@ -85,8 +87,8 @@ class staging:
         for dele in self.deletes:
             self.package.removeFile(dele)
         for add in self.appends:
-            self.package.appendFile(add)
-        self.package.sortFiles()
+            self.package.appendFile(add, start_id=self.start_id)
+        self.package.sortFiles(start_id=self.start_id)
         self.deletes = []
         self.appends = []
 
@@ -100,7 +102,14 @@ class staging:
             self.clearEnviron()
 
     def listInfo(self):
-        print("Target: " + self.target)
+        targstr = self.target
+        if targstr == "":
+            targstr = "<empty, create new>"
+        print("Target: " + targstr)
+        print("First element id: %d (0x%x)" % (self.start_id, self.start_id))
+
+    def listDetailed(self):
+        self.listInfo()
         for add in self.appends:
             modif = False
             for dele in self.deletes:
@@ -119,14 +128,15 @@ class staging:
                 print("delete: %s" % (dele.name,))
 
     def saveEnviron(self):
-        pickle.dump([self.package, self.target, self.appends, self.deletes], open(environ_name, "wb"))
+        pickle.dump([self.package, self.target, self.start_id, self.appends, self.deletes], open(environ_name, "wb"))
 
     def loadEnviron(self):
         data = pickle.load(open(environ_name, "rb"))
         self.package = data[0]
         self.target = data[1]
-        self.appends = data[2]
-        self.deletes = data[3]
+        self.start_id = data[2]
+        self.appends = data[3]
+        self.deletes = data[4]
 
     def clearEnviron(self):
         os.remove(environ_name)

@@ -41,7 +41,7 @@ def nonStaging(pac, cmdline, filename):
 
     elif cmdline.extract:
         threads = Broker(len(pac.files))
-        for fid in range(len(pac.files)):
+        for fid in pac.listFileIDs():
             threads.appendNfire(extractJob, (pac, fid, cmdline, filename))
         threads.stop()
         print("Extraction job completed")
@@ -92,6 +92,8 @@ def main(cmdline):
             nonStaging(sekai.package, cmdline, sekai.target)
         elif cmdline.list:
             sekai.listInfo()
+        elif cmdline.list_harder:
+            sekai.listDetailed()
 
         # other operations
 
@@ -101,6 +103,7 @@ def main(cmdline):
             sekai.saveEnviron()
 
         else:
+            sekai.start_id = cmdline.offset
             sekai.saveEnviron()
 
     # non-staging operations
