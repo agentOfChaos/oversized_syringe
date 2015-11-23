@@ -2,7 +2,8 @@
 
 from ovsylib import cliparse, datastruct, fileadding_utils
 from ovsylib.aggressive_threading import Broker
-import os
+from gui import mainview
+import os,sys
 
 
 def extractJob(pac, fid, cmdline, filename):
@@ -46,7 +47,7 @@ def nonStaging(pac, cmdline, filename):
         threads.stop()
         print("Extraction job completed")
 
-def main(cmdline):
+def cliUI(cmdline):
     sekai = fileadding_utils.staging()
     docompress = not cmdline.no_compress
     dryrun = cmdline.dry_run
@@ -113,6 +114,14 @@ def main(cmdline):
             pac.loadFromFile(binfile)
         nonStaging(pac, cmdline, cmdline.file)
 
+def gUI():
+    mainview.launch()
+
+def main(cmdline):
+    if len(sys.argv) <= 1:
+        gUI()
+    else:
+        cliUI(cmdline)
 
 if __name__ == '__main__':
     commandline = cliparse.parsecli()

@@ -5,13 +5,18 @@ import pickle
 
 environ_name = ".ovs_staging"
 
+def topdir(root):
+    if root[len(root) - 1] == "\\" or root[len(root) - 1] == "/":
+        root = root[:-1]
+    return os.path.basename(root)
 
 def listrecursive(root):
     allfiles = {}
     for rootfolder, dirs, files in os.walk(root):
         for file in files:
             fullpath = os.path.join(os.path.abspath(rootfolder), file)
-            allfiles[fullpath] = datastruct.adjustSeparatorForPac(os.path.relpath(fullpath, root))
+            allfiles[fullpath] = datastruct.adjustSeparatorForPac(os.path.join(topdir(root),
+                                                                               os.path.relpath(fullpath, root)))
     return allfiles
 
 
@@ -36,13 +41,13 @@ class staging:
         collisions = self.package.searchFile(internal_name)
         if len(collisions) == 0:
             newfile = datastruct.fileentry()
-            newfile.createFromFile(internal_name, path,compress=compression)
+            newfile.createFromFile(internal_name, path, compress=compression)
             self.appends.append(newfile)
             return True
         elif len(collisions) == 1:
             self.deletes.append(self.package.files[collisions[0]])  # stage delete old
             newfile = datastruct.fileentry()
-            newfile.createFromFile(internal_name, path,compress=compression)
+            newfile.createFromFile(internal_name, path, compress=compression)
             self.appends.append(newfile)  # stage append new
             return False
         else:
@@ -108,24 +113,47 @@ class staging:
         print("Target: " + targstr)
         print("First element id: %d (0x%x)" % (self.start_id, self.start_id))
 
-    def listDetailed(self):
-        self.listInfo()
+    def listStagedCreate(self):
+        ops = []
+        for add in self.appends:
+            modif = False
+            for dele in self.deletes:
+                if dele.name == add.name:
+                    modif = True
+            if not modif:
+                ops.append("%s <- %s" % (add.name, add.import_from))
+        return ops
+
+    def listStagedModify(self):
+        ops = []
         for add in self.appends:
             modif = False
             for dele in self.deletes:
                 if dele.name == add.name:
                     modif = True
             if modif:
-                print("modify: %s <- %s" % (add.name, add.import_from))
-            else:
-                print("create: %s <- %s" % (add.name, add.import_from))
+                ops.append("%s <- %s" % (add.name, add.import_from))
+        return ops
+
+    def listStagedDelete(self):
+        ops = []
         for dele in self.deletes:
             modif = False
             for add in self.appends:
                 if dele.name == add.name:
                     modif = True
             if not modif:
-                print("delete: %s" % (dele.name,))
+                ops.append("%s" % (dele.name,))
+        return ops
+
+    def listDetailed(self):
+        self.listInfo()
+        for op in self.listStagedCreate():
+            print("create: " + op)
+        for op in self.listStagedModify():
+            print("modify: " + op)
+        for op in self.listStagedDelete():
+            print("delete: " + op)
 
     def saveEnviron(self):
         pickle.dump([self.package, self.target, self.start_id, self.appends, self.deletes], open(environ_name, "wb"))

@@ -83,7 +83,8 @@ The file will also be deleted once the write (-w) operation was completed with s
     
 ## GUI version
 
-not yet developed
+Launch the script without arguments
+**not yet fully functional**
 
 # Roadmap
 

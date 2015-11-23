@@ -246,6 +246,9 @@ class pacfile:
             ids.append(f.id)
         return ids
 
+    def listFileNames(self):
+        return map(attrgetter("name"), self.files)
+
     def createDestination(self, fid, destination):
         file = self.getFileById(fid)
         fname = adjustSeparatorForFS(file.name)
@@ -295,13 +298,15 @@ class pacfile:
         self.files = sorted(self.files, key=attrgetter("name"))
         self.refreshFileIDs(start_id=start_id)
 
-    def createCopy(self, original, filename, dry_run=False, debuggy=False):
+    def createCopy(self, original, filename, dry_run=False, debuggy=False, progresscback=None):
         with open(filename, "wb") as updatedversion:
             self.header.writeMetaData(updatedversion, dry_run=dry_run)
             for file in self.files:
                 file.writeMetadata(updatedversion, dry_run=dry_run)
             for file in self.files:
                 file.updateMyself(original, updatedversion, self.metadata_offset, dry_run=dry_run, debuggy=debuggy)
+                if progresscback is not None:
+                    progresscback(file)
 
     def searchFile(self, name, exact_match=True, adjust_separator=True):
         """ :return: list of file ids """
@@ -313,7 +318,7 @@ class pacfile:
                 if file.name == name:
                     ret.append(file.id)
             else:
-                if file.name.find(name) != -1:
+                if file.name.startswith(name):
                     ret.append(file.id)
         return ret
 
