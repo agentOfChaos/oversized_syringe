@@ -107,6 +107,7 @@ All those modifies are simply put into the temporary (staging) area, which shows
 To actually apply those changes to the package, hit "commit" in the menu bar.
 
 Finally, to create the actual .pac file, hit "write" in the menu bar.
+
 **warning: in case you are editing an existing .pacfile, do not overwrite it**
 
 # Roadmap
