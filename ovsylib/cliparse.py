@@ -3,6 +3,7 @@ import argparse
 
 def parsecli():
     parser = argparse.ArgumentParser(description="Hyperdimension Neptunia .pac packer / unpacker")
+    parser.add_argument('--version', '-v', help='Show infos about the current version', action='store_true')
     parser.add_argument('--raw', help='do not decompress the extrated files', action='store_true')
     parser.add_argument('--list', '-l', help='list the content of the file / staging environment', action='store_true')
     parser.add_argument('--extract', '-x', metavar='location', help='set the directory to extract the files to.'
@@ -23,7 +24,7 @@ def parsecli():
     parser.add_argument('--offset', '-O', help='(staging only) only used when initializing an empty staging '
                         'environment. Set the file id to start counting from',
                         type=int, default=0)
-    parser.add_argument('--add', '-a', help='(staging only) stage add a file; if a base-directory is'
+    parser.add_argument('--add', '-a', help='(staging only) stage add a file/directory; if a base-directory is'
                         ' specified, the file\'s internal name will be calculated relatively to said path',
                         action='store_true')
     parser.add_argument('--base-dir', '-B', metavar='basedir', help='(optional) set a base directory, useful for'

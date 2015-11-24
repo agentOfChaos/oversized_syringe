@@ -298,7 +298,7 @@ class pacfile:
         self.files = sorted(self.files, key=attrgetter("name"))
         self.refreshFileIDs(start_id=start_id)
 
-    def createCopy(self, original, filename, dry_run=False, debuggy=False, progresscback=None):
+    def createCopy(self, original, filename, dry_run=False, debuggy=False, progresscback=None, abort=None):
         with open(filename, "wb") as updatedversion:
             self.header.writeMetaData(updatedversion, dry_run=dry_run)
             for file in self.files:
@@ -307,6 +307,9 @@ class pacfile:
                 file.updateMyself(original, updatedversion, self.metadata_offset, dry_run=dry_run, debuggy=debuggy)
                 if progresscback is not None:
                     progresscback(file)
+                if abort is not None:
+                    if abort():
+                        break
 
     def searchFile(self, name, exact_match=True, adjust_separator=True):
         """ :return: list of file ids """

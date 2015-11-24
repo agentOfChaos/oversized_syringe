@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from ovsylib import cliparse, datastruct, fileadding_utils
+from ovsylib import cliparse, datastruct, fileadding_utils, info
 from ovsylib.aggressive_threading import Broker
 from gui import mainview
 import os,sys
@@ -14,16 +14,13 @@ def extractJob(pac, fid, cmdline, filename):
 def nonStaging(pac, cmdline, filename):
     if cmdline.list:
         pac.printInfo()
-
     elif cmdline.list_harder:
         pac.printDetailInfo()
-
     elif cmdline.file_info:
         file = pac.getFileById(cmdline.file_info)
         if file is not None:
             print("          id    offset       size  compress  size  filename")
             file.printDetailInfo()
-
     elif cmdline.extract_id:
         with open(filename, "rb") as binfile:
             idlist = map(int, cmdline.extract_id.split(","))
@@ -64,12 +61,14 @@ def cliUI(cmdline):
                         print("File " + datastruct.adjustSeparatorForPac(relpath) + " will be replaced")
                 else:
                     print("directory \"" + cmdline.add + "\" si not valid")
+            elif os.path.isdir(cmdline.file):
+                sekai.addDirectory(cmdline.file, compression=docompress, verbose=True, wholedir=True)
             else:
                 print("file \"" + cmdline.file + "\" not found")
             sekai.saveEnviron()
         elif cmdline.merge:
             if os.path.isdir(cmdline.file):
-                sekai.addDirectory(cmdline.file, compression=docompress, verbose=True)
+                sekai.addDirectory(cmdline.file, compression=docompress, verbose=True, wholedir=False)
             else:
                 print("directory \"" + cmdline.add + "\" si not valid")
             sekai.saveEnviron()
@@ -89,6 +88,8 @@ def cliUI(cmdline):
             sekai.saveEnviron()
         elif cmdline.write:
             sekai.writeout(cmdline.file, dry_run=dryrun, debuggy=cmdline.debug)
+            if not dryrun:
+                sekai.clearEnviron()
         elif cmdline.peek:
             nonStaging(sekai.package, cmdline, sekai.target)
         elif cmdline.list:
@@ -113,6 +114,10 @@ def cliUI(cmdline):
         with open(cmdline.file, "rb") as binfile:
             pac.loadFromFile(binfile)
         nonStaging(pac, cmdline, cmdline.file)
+
+    else:
+        if cmdline.version:
+            print(info.getInfoMsg())
 
 def gUI():
     mainview.launch()

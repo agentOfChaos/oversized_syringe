@@ -2,6 +2,11 @@ from PyQt4 import QtGui, QtCore
 
 from gui import treeview
 
+"""
+Here goes the "dumb" part of the gui, the one that only describe the layout / look and,
+only in minimal part, the behaviout
+"""
+
 namecolumn_width = 300
 
 def setToolbar(object):
@@ -19,7 +24,7 @@ def setToolbar(object):
     info = QtGui.QAction(QtGui.QIcon.fromTheme("dialog-information"), "Info", object)
     info.setShortcut("Ctrl+I")
     info.setStatusTip("Show information")
-    object.connect(info, QtCore.SIGNAL('triggered()'), object.test)
+    object.connect(info, QtCore.SIGNAL('triggered()'), object.showInfo)
 
     abrt = QtGui.QAction(QtGui.QIcon.fromTheme("process-stop"), "Abort", object)
     abrt.setStatusTip("Abort any running operation")
@@ -30,10 +35,20 @@ def setToolbar(object):
     xtractall.setStatusTip("Extract the pac directory")
     object.connect(xtractall, QtCore.SIGNAL('triggered()'), object.extractAll)
 
+    commitcall = QtGui.QAction(QtGui.QIcon.fromTheme("weather-clear"), "Commit", object)
+    commitcall.setStatusTip("Commit staged changes")
+    object.connect(commitcall, QtCore.SIGNAL('triggered()'), object.commitChanges)
+
+    writecall = QtGui.QAction(QtGui.QIcon.fromTheme("document-save"), "Write", object)
+    writecall.setStatusTip("Write modifies to disk")
+    object.connect(writecall, QtCore.SIGNAL('triggered()'), object.writeTo)
+
     object.top_toolbar = object.addToolBar('Main toolbar')
     object.top_toolbar.addAction(createf)
     object.top_toolbar.addAction(openf)
     object.top_toolbar.addAction(xtractall)
+    object.top_toolbar.addAction(commitcall)
+    object.top_toolbar.addAction(writecall)
     object.top_toolbar.addAction(abrt)
     object.top_toolbar.addAction(info)
     object.top_toolbar.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
@@ -59,6 +74,8 @@ def setStagingView(object, layout):
     object.stagingview = QtGui.QListView()
     object.stagingviewmodel = QtGui.QStandardItemModel()
     object.stagingview.setModel(object.stagingviewmodel)
+    object.stagingview.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+    object.stagingview.customContextMenuRequested.connect(object.stagemenu)
     layout.addWidget(object.stagingview)
 
 def bottombar(object, layout):

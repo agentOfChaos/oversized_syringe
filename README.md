@@ -18,6 +18,7 @@ The file's directory and compression formats are pretty much understood now (I'd
 # Correctness
 
 I tried unpacking and repacking some of the game's archives for testing purposes, here's the results:
+("the game" being Re;Birth 1 and 2, steam version)
 * The original game file and the rebuilt version have the same size in bytes, however, the internal
     structure is a tad bit different, and thus they have different checksums
 * Anyway, after unpacking, the recursive checksums of the extracted folders do match
@@ -84,14 +85,31 @@ The file will also be deleted once the write (-w) operation was completed with s
 ## GUI version
 
 Launch the script without arguments
-**not yet fully functional**
+The gui is composed of a package-view panel, a filesystem-view panel, and a staging-view panel.
+The useges for the gui and the cli are pretty similar:
+#### Extraction
+
+After selecting a destination directory in the filesystem panel, you can either run "extract all" from the menu-bar, or cherry pick desired files (right click on the file > "Extract file/s")
+
+#### Edit / create
+
+From the menubar, you can either load an existing .pac file, or create a new one.
+To add files to the package, right click on them from the filesystem-view, and choose "Import file/s".
+Directories can also be "merged", meaning that their content will be added to the archive.
+To remove files from the package, right click on them from the package-view, and choose "Stage file/s for deletion".
+
+All those modifies are simply put into the temporary (staging) area, which shows which files will be added, replaced or deleted. If you wish to undo a staged modify, select it in the staging area, and right click > "Undo".
+
+To actually apply those changes to the package, hit "commit" in the menu bar.
+
+Finally, to create the actual .pac file, hit "write" in the menu bar.
+**warning: in case you are editing an existing .pacfile, do not overwrite it**
 
 # Roadmap
 
 1. Extensive testing
-2. GUI
+2. Test support for other OSes
 3. .cpk file support
-4. Test support for other OSes
 
 # Thanks to
 

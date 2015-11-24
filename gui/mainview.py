@@ -2,7 +2,7 @@ from PyQt4 import QtGui, QtCore
 import os, sys
 
 from gui import elements, adapter, controllR
-from ovsylib import datastruct, fileadding_utils
+from ovsylib import datastruct, fileadding_utils, info
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self, title="MasterBlade Neptune"):
@@ -67,7 +67,12 @@ class MainWindow(QtGui.QMainWindow):
                     addItems(item, children)
         model = QtGui.QStandardItemModel()
         datastuff = adapter.listToTree(self.staging.package.listFileNames())
-        model.setHorizontalHeaderLabels([self.staging.target])
+        label = self.staging.target
+        if self.staging.target == "":
+            label = "new file"
+        if self.operations.unsaved:
+            label += " *"
+        model.setHorizontalHeaderLabels([label])
         addItems(model, datastuff)
         self.virtdir.setModel(model)
         self.virtdir.setColumnWidth(0, elements.namecolumn_width)
@@ -125,8 +130,12 @@ class MainWindow(QtGui.QMainWindow):
             return os.path.join(fullpath[0], *fullpath[1:])
         return None
 
-    def test(self):
-        print(self.getCurrentComputerPath())
+    def getSelectedStagingItem(self):
+        indexes = self.stagingview.selectedIndexes()
+        if len(indexes) > 0:
+            index = indexes[0]
+            return self.stagingview.model().data(index)
+        return None
 
     def abort(self):
         self.operations.abort()
@@ -139,6 +148,8 @@ class MainWindow(QtGui.QMainWindow):
         if maxoutbar:
             self.progressBar.setValue(100)
         self.statusText.setText(text)
+        self.updatePACScreen()
+        self.updateStagingScreen()
 
     def itemmenu(self, position):
         saveto = self.getCurrentComputerDirectory()
@@ -159,12 +170,31 @@ class MainWindow(QtGui.QMainWindow):
         path = self.getCurrentComputerPath()
         menu = QtGui.QMenu()
         action_import = menu.addAction(self.tr("Import file/s"))
+        if os.path.isdir(path):
+            action_merge = menu.addAction(self.tr("Merge directory"))
         action = menu.exec_(self.realdir.viewport().mapToGlobal(position))
         if action == action_import:
             if self.staging is not None:
-                self.operations.stageAdd(path)
+                self.operations.stageAdd(path, mergemode=False)
             else:
                 self.errorbox("Please load or create a .pac archive first")
+        elif os.path.isdir(path):
+            if action == action_merge:
+                if self.staging is not None:
+                    self.operations.stageAdd(path, mergemode=True)
+                else:
+                    self.errorbox("Please load or create a .pac archive first")
+
+    def stagemenu(self, position):
+        item = self.getSelectedStagingItem()
+        menu = QtGui.QMenu()
+        action_undo = menu.addAction(self.tr("Undo"))
+        action_undo_all = menu.addAction(self.tr("Undo all"))
+        action = menu.exec_(self.stagingview.viewport().mapToGlobal(position))
+        if action == action_undo:
+            self.operations.stageUndo(item.split(" ")[0])
+        elif action == action_undo_all:
+            self.operations.stageUndoAll()
 
     def extractAll(self):
         saveto = self.getCurrentComputerDirectory()
@@ -173,11 +203,31 @@ class MainWindow(QtGui.QMainWindow):
         elif not self.operations.extract("", saveto):
             self.errorbox("Please wait for the current operation to end")
 
+    def writeTo(self):
+        saveto = self.getCurrentComputerDirectory()
+        if saveto is None:
+            self.errorbox("Please select a destination directory")
+            return
+        destfile = os.path.join(saveto, "baka.pac")
+        destfile, ok = self.inputbox("Save modified package as", destfile)
+        if ok:
+            if not self.operations.writepackage(destfile):
+                self.errorbox("Please wait for the current operation to end")
+
+    def commitChanges(self):
+        if self.staging is not None:
+            self.operations.stageCommit()
+        else:
+            self.errorbox("Please load or create a .pac archive first")
+
     def errorbox(self, message):
         QtGui.QMessageBox.information(self, "Error!", message)
 
     def inputbox(self, message, default):
         return QtGui.QInputDialog.getText(self, "Confirm input" + " " * 150, message, text=default)
+
+    def showInfo(self):
+        QtGui.QMessageBox.about(self, "About", info.getInfoMsg())
 
 def launch():
     app = QtGui.QApplication(sys.argv)

@@ -60,5 +60,6 @@ class Broker:
 
     def abort(self):
         """ kills the subthreads with fire """
+        self.freespots.release()  # this will release a stuck appendNfire()
         self.pool.terminate()
         self.pool.join()

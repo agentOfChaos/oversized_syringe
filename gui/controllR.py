@@ -1,4 +1,5 @@
 import os
+from operator import attrgetter
 from PyQt4 import QtGui, QtCore
 
 from ovsylib.aggressive_threading import Broker
@@ -41,6 +42,7 @@ class GeoFront:
         self.percent = 0
         self.doneunits = 0
         self.numunits = 1
+        self.unsaved = False
         self.opname = ["idle", "idling"]
         self.worker = CustomThread()
         self.app.connect(self.worker, QtCore.SIGNAL("progressfile"), self.progressFile)
@@ -62,7 +64,7 @@ class GeoFront:
 
     def after_run(self, thread, msg):
         if thread.handbrake:
-            thread.errormessage("%s operation aborted by user" % self.opname[0])
+            thread.errormessage("\"%s\" operation aborted by user" % self.opname[0])
             self.app.doneCback("Interrupted; " + msg, maxoutbar=False)
         else:
             self.app.doneCback(msg)
@@ -72,12 +74,14 @@ class GeoFront:
 
     def extract(self, internalname, saveto):
         if self.can_start():
-            self.opname = ["extract", "extracting"]
+            self.opname = ["extract package", "extracting"]
             def capsule(thread):
                 threads = Broker(len(self.app.staging.package.files))
                 thread.abort_interface = threads
                 fids = self.app.staging.package.searchFile(internalname, exact_match=False)
                 for fid in fids:
+                    if thread.handbrake:
+                        break
                     if not threads.appendNfire(extractJob,
                                         (self.app.staging.package,
                                          fid, saveto, self.app.staging.target)):
@@ -94,17 +98,66 @@ class GeoFront:
             return True
         return False
 
-    def stageAdd(self, fullname):
+    def writepackage(self, destination):
+        if self.can_start():
+            self.opname = ["write modified", "written"]
+            val = {"aborted": False}
+            class dummyABRTiface:
+                def __init__(self, val):
+                    self.val = val
+                def abort(self):
+                    self.val["aborted"] = True
+            def chkabrt():
+                return val["aborted"]
+            def capsule(thread):
+                thread.abort_interface = dummyABRTiface(val)
+                self.app.staging.writeout(destination, progresscback=thread.progressCallback, abort=chkabrt)
+                if not thread.handbrake:
+                    self.unsaved = False
+                self.app.staging.target = destination
+                self.after_run(thread, "done %s %d files" % (self.opname[1], self.doneunits))
+            self.worker.target = capsule
+            self.numunits = len(self.app.staging.package.files)
+            self.working = True
+            self.doneunits = 0
+            self.worker.start()
+            return True
+        return False
+
+    def stageAdd(self, fullname, mergemode=False):
         if os.path.isdir(fullname):
-            self.app.staging.addDirectory(fullname)
+            self.app.staging.addDirectory(fullname, wholedir=not mergemode)
+            self.unsaved = True
         else:
             addname, ok = self.app.inputbox("Import the file as", fullname)
             if ok:
                 self.app.staging.addfile(addname, fullname)
+                self.unsaved = True
         self.app.updateStagingScreen()
 
     def stageDel(self, internalname):
         fids = self.app.staging.package.searchFile(internalname, exact_match=False)
+        if len(fids) > 0:
+            self.unsaved = True
         for fid in fids:
             self.app.staging.removeFile(self.app.staging.package.getFileById(fid).name)
+        self.app.updateStagingScreen()
+
+    def stageUndo(self, internalname):
+        self.unsaved = True
+        self.app.staging.undoFile(internalname)
+        self.app.updateStagingScreen()
+
+    def stageUndoAll(self):
+        self.unsaved = True
+        names = list(map(attrgetter("name"), self.app.staging.appends)) +\
+                list(map(attrgetter("name"), self.app.staging.deletes))
+        for name in names:
+            self.app.staging.undoFile(name.split(" ")[0])
+        self.app.updateStagingScreen()
+
+    def stageCommit(self):
+        self.unsaved = True
+        self.app.staging.commit()
+        self.app.updatePACScreen()
         self.app.updateStagingScreen()

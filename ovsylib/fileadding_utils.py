@@ -10,13 +10,16 @@ def topdir(root):
         root = root[:-1]
     return os.path.basename(root)
 
-def listrecursive(root):
+def listrecursive(root, wholedir=False):
     allfiles = {}
     for rootfolder, dirs, files in os.walk(root):
         for file in files:
             fullpath = os.path.join(os.path.abspath(rootfolder), file)
-            allfiles[fullpath] = datastruct.adjustSeparatorForPac(os.path.join(topdir(root),
-                                                                               os.path.relpath(fullpath, root)))
+            if wholedir:
+                localname = os.path.join(topdir(root), os.path.relpath(fullpath, root))
+            else:
+                localname = os.path.relpath(fullpath, root)
+            allfiles[fullpath] = datastruct.adjustSeparatorForPac(localname)
     return allfiles
 
 
@@ -54,8 +57,8 @@ class staging:
             print("Directory consisteny error")  # cryptic error message
             pass # error
 
-    def addDirectory(self, dirpath, verbose=False, compression=True):
-        addenda = listrecursive(dirpath)
+    def addDirectory(self, dirpath, verbose=False, compression=True, wholedir=False):
+        addenda = listrecursive(dirpath, wholedir=wholedir)
         for fs,pac in addenda.items():
             newbie = self.addfile(pac, fs, compression=compression)
             if newbie and verbose:
@@ -97,14 +100,14 @@ class staging:
         self.deletes = []
         self.appends = []
 
-    def writeout(self, destination, dry_run=False, debuggy=False):
+    def writeout(self, destination, dry_run=False, debuggy=False, progresscback=None, abort=None):
         if self.target != "":
             with open(self.target, "rb") as origin:
-                self.package.createCopy(origin, destination, dry_run=dry_run, debuggy=debuggy)
+                self.package.createCopy(origin, destination, dry_run=dry_run, debuggy=debuggy,
+                                        progresscback=progresscback, abort=abort)
         else:
-            self.package.createCopy(None, destination, dry_run=dry_run, debuggy=debuggy)
-        if not dry_run:
-            self.clearEnviron()
+            self.package.createCopy(None, destination, dry_run=dry_run, debuggy=debuggy,
+                                    progresscback=progresscback, abort=abort)
 
     def listInfo(self):
         targstr = self.target
