@@ -21,9 +21,10 @@ I tried unpacking and repacking some of the game's archives for testing purposes
 
 ("the game" being Re;Birth 1 and 2, steam version)
 * The original game file and the rebuilt version have the same size in bytes, however, the internal
-    structure is a tad bit different, and thus they have different checksums
+    structure is a tad bit different, and thus they have different checksums. I blame that on the different
+    ordering of the nodes in the Huffman tree, but that's absolutely not a problem.
 * Anyway, after unpacking, the recursive checksums of the extracted folders do match
-* TODO: test it against the actual game
+* Tests against the actual game still are ongoing, but, so far, no errors.
 
 # Usage
 
