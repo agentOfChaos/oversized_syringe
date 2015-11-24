@@ -48,7 +48,7 @@ class staging:
             self.appends.append(newfile)
             return True
         elif len(collisions) == 1:
-            self.deletes.append(self.package.files[collisions[0]])  # stage delete old
+            self.deletes.append(self.package.getFileById(collisions[0]))  # stage delete old
             newfile = datastruct.fileentry()
             newfile.createFromFile(internal_name, path, compress=compression)
             self.appends.append(newfile)  # stage append new
@@ -87,7 +87,7 @@ class staging:
         if name not in self.deletes:
             target = self.package.searchFile(name, exact_match=True)
             if len(target) == 1:
-                self.deletes.append(self.package.files[target[0]])
+                self.deletes.append(self.package.getFileById(target[0]))
                 modif = True
         return modif
 
