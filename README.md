@@ -18,6 +18,7 @@ The file's directory and compression formats are pretty much understood now (I'd
 # Correctness
 
 I tried unpacking and repacking some of the game's archives for testing purposes, here's the results:
+
 ("the game" being Re;Birth 1 and 2, steam version)
 * The original game file and the rebuilt version have the same size in bytes, however, the internal
     structure is a tad bit different, and thus they have different checksums
@@ -86,6 +87,9 @@ The file will also be deleted once the write (-w) operation was completed with s
 
 Launch the script without arguments
 The gui is composed of a package-view panel, a filesystem-view panel, and a staging-view panel.
+
+![GUI preview](https://github.com/agentOfChaos/oversized_syringe/blob/master/readme.png)
+
 The useges for the gui and the cli are pretty similar:
 #### Extraction
 
