@@ -1,5 +1,5 @@
 import struct,os
-from ovsylib import datamover, compression
+from ovsylib import datamover, compression, customsort
 import math
 import platform
 from operator import attrgetter
@@ -295,8 +295,15 @@ class pacfile:
             file.id = self.files.index(file) + start_id  # make sure ids are still consistent
 
     def sortFiles(self, start_id=0):
-        self.files = sorted(self.files, key=attrgetter("name"))
+        self.files = sorted(self.files, key=customsort.cmp_to_key(customsort.asciicompare))
         self.refreshFileIDs(start_id=start_id)
+
+    def preWriteFixHeader(self):
+        """ actually needed only for freshly generated pacfiles """
+        if self.header.nfiles != len(self.files):
+            self.header.nfiles = len(self.files)
+        if self.header.dwpack != "DW_PACK":
+            self.header.dwpack = "DW_PACK"
 
     def createCopy(self, original, filename, dry_run=False, debuggy=False, progresscback=None, abort=None):
         with open(filename, "wb") as updatedversion:

@@ -24,7 +24,9 @@ I tried unpacking and repacking some of the game's archives for testing purposes
     structure is a tad bit different, and thus they have different checksums. I blame that on the different
     ordering of the nodes in the Huffman tree, but that's absolutely not a problem.
 * Anyway, after unpacking, the recursive checksums of the extracted folders do match
-* Tests against the actual game still are ongoing, but, so far, no errors.
+* Tests against the actual game still are ongoing;
+* So far I've found out that the order in the file-directory IDs is very important, since the game
+    uses that ID, rather than the internal name, to identify a packed file.
 
 # Usage
 

@@ -106,6 +106,7 @@ class staging:
                 self.package.createCopy(origin, destination, dry_run=dry_run, debuggy=debuggy,
                                         progresscback=progresscback, abort=abort)
         else:
+            self.package.preWriteFixHeader()
             self.package.createCopy(None, destination, dry_run=dry_run, debuggy=debuggy,
                                     progresscback=progresscback, abort=abort)
 
