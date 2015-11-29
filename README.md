@@ -28,6 +28,11 @@ I tried unpacking and repacking some of the game's archives for testing purposes
 * So far I've found out that the order in the file-directory IDs is very important, since the game
     uses that ID, rather than the internal name, to identify a packed file.
 
+# Dependancies
+
+    PyQt4
+    bitarray
+
 # Usage
 
 ## CLI version
