@@ -10,7 +10,7 @@ def read_file_chunk(file, chunk_size=1024):
 
 def dd(iffy, vert, offset, length, blocksize=1024):
     """
-
+    Works just like the dd linux command
     :param iffy: input file
     :param vert: output file
     """

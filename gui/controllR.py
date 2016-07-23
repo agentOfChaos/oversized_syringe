@@ -140,7 +140,7 @@ class GeoFront:
         if len(fids) > 0:
             self.unsaved = True
         for fid in fids:
-            self.app.staging.removeFile(self.app.staging.package.getFileById(fid).name)
+            self.app.staging.remove_file(self.app.staging.package.getFileById(fid).name)
         self.app.updateStagingScreen()
 
     def stageUndo(self, internalname):

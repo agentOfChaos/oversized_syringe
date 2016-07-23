@@ -49,22 +49,22 @@ Repeat until length(written data) == uncompressed value specified in header
 class TreeNode:
 
     def __init__(self):
-        self.childzero = None   # if I'm ever getting children, I'll name them like this
+        self.childzero = None   # if I'm ever having children, I'll name them like this
         self.childone = None
         self.isleaf = False     # to let the algorithm know when to stop
         self.isActive = True    # active node: a subtree can be attached here
         self.value = b"\0"       # value (a single byte)
 
-    def setValue(self, value):
+    def set_value(self, value):
         self.isActive = False
         self.isleaf = True
         self.value = value
 
-    def expandNode(self):
+    def expand_node(self):
         """ append a left (zero) and right (one) child, left is returned """
-        return self.bilateralExpand()[0]
+        return self.bilateral_expand()[0]
 
-    def bilateralExpand(self):
+    def bilateral_expand(self):
         """ append a left (zero) and right (one) child, return a list containing both """
         self.isActive = False
         self.isleaf = False
@@ -72,7 +72,7 @@ class TreeNode:
         self.childone = TreeNode()
         return [self.childzero, self.childone]
 
-    def findFirstActive(self):
+    def find_first_active(self):
         """ recursive depth-first search for the leftmost active node """
         if self.isleaf:
             return None
@@ -118,16 +118,17 @@ def tree2dot(root, filename):
                             " [label=1]\n")
         tfile.write("}\n")
 
+
 def buildtree(root, cursor, bitstream):
     while True:
         # get the active node to work on
-        worknode = root.findFirstActive()
+        worknode = root.find_first_active()
         if worknode is None:  # if the tree is completely built, then stop
             break
         # read the 'spacers'
         downleft_distance = 0
         try:
-            while bitstream[cursor] != False:
+            while bitstream[cursor]:
                 downleft_distance += 1
                 cursor += 1
         except IndexError:
@@ -138,8 +139,8 @@ def buildtree(root, cursor, bitstream):
         value = bitstream[cursor:cursor+8].tobytes()
         cursor += 8
         for i in range(downleft_distance):
-            worknode = worknode.expandNode()
-        worknode.setValue(value)
+            worknode = worknode.expand_node()
+        worknode.set_value(value)
     return root, cursor
 
 def uncompress(binfile, destfile, numbytes, bytes_out, debuggy=False):
@@ -188,125 +189,6 @@ def collectBytes(Lb, multib, sourcefile, start_offs, end_offs):
         readbyte = sourcefile.read(1)
         target_read += 1
 
-def evalCost(num, Lb, multib, offset, depth):
-    sum = 0
-    for pos in range(offset, offset + num):
-        sum += multib[Lb[pos]] * depth
-    return sum
-
-def clamp(bot, top, n):
-    return max(bot, min(n, top))
-
-def recursiveBest(Lb, multib, offset, depth):
-    best_cost = 9999999999999
-    best_num = 0
-    #print("enrty level, len(Lb)=%d, offset=%d" % (len(Lb), offset))
-    for i in range(math.ceil(math.log2(len(Lb)))):
-        p = 2**i
-        if p <= len(Lb) - offset:
-            #print("%d: trying p=%d" % (depth, p))
-            evcost = evalCost(p, Lb, multib, offset, depth)
-            if evcost >= best_cost:
-                continue
-            if len(Lb) - p - offset > 0:
-                #print("%d: stepping in" % (depth))
-                recur_num, recur_cost = recursiveBest(Lb, multib, offset + p, depth + 1)
-                #print("%d: recur_cost=%d" % (depth, recur_cost))
-            else:
-                recur_cost = 0
-            cost = evcost + recur_cost
-            if cost < best_cost:
-                best_cost = cost
-                best_num = p
-    print("depth: %d, local optimum (%d): %s" % (depth, best_num, ".".join(map(str, Lb[offset:offset+best_num]))))
-    return best_num, best_cost # bestnum, bestcost
-
-def appendCluster(node, breadth):
-    """ :return: list of children nodes """
-    worklist = [node]
-    for i in range(round(math.log2(breadth))):
-        toappend = []
-        for delenda in worklist:
-            toappend.extend(delenda.bilateralExpand())
-        worklist = toappend
-    return worklist
-
-def buildOptimumTree(sourcefile):
-    Lb = []
-    multib = {}
-    def keyfun(elem):
-        return multib[elem]
-    root = TreeNode()
-    collectBytes(Lb, multib, sourcefile)
-    print("variety: %d" % len(Lb))
-    Lb = sorted(Lb, key=keyfun, reverse=True)
-    active_node = root
-    while len(Lb) > 0:
-        n_pick, n_cost = recursiveBest(Lb, multib, 0, 1)
-        print("picked: %d" % n_pick)
-        # append first n_pick nodes to the left subtree
-        if n_pick > 0:
-            active_node.bilateralExpand()
-            cluster = appendCluster(active_node.childzero, n_pick)
-            for i in range(n_pick):
-                cluster[i].setValue(Lb[i])
-            # right node becomes active
-            active_node = active_node.childone
-        else:
-            active_node.setValue(Lb[0])
-            Lb.pop(0)
-        # remove n_pick nodes from Lb
-        for i in range(n_pick):
-            Lb.pop(0)
-    return
-
-def buildpercentb(Lb, multib, percentb):
-    total = 0
-    for k,v in multib.items():
-        total += v
-    for k,v in multib.items():
-        percentb[k] = float(v / total)
-
-def buildOkTree(sourcefile, start_offs, end_offs):
-    Lb = []
-    multib = {}
-    percentb = {}
-    def keyfun(elem):
-        return multib[elem]
-    def pocketsum(elems):
-        summa = 0.0
-        for e in elems:
-            summa += percentb[e]
-        return summa
-    root = TreeNode()
-    collectBytes(Lb, multib, sourcefile, start_offs, end_offs)
-    buildpercentb(Lb, multib, percentb)
-    Lb = sorted(Lb, key=keyfun, reverse=True)
-    active_node = root
-    target_percent = 0.5
-    while len(Lb) > 0:
-        subspace = 0
-        for space in range(len(Lb)):
-            subspace = Lb[0:space+1]
-            if pocketsum(subspace) >= target_percent:
-                break
-        target_p2 = clamp(1, 2**math.floor(math.log2(len(Lb))), 2**math.ceil(math.log2(len(subspace))))
-
-        if len(Lb) - target_p2 > 0:
-            active_node.bilateralExpand()
-            cluster = appendCluster(active_node.childzero, target_p2)
-        else:
-            cluster = appendCluster(active_node, target_p2)
-        for i in range(target_p2):
-            cluster[i].setValue(Lb[i])
-        active_node = active_node.childone
-
-        for i in range(target_p2):
-            Lb.pop(0)
-
-        target_percent = target_percent / 2
-
-    return root
 
 def buildHuffmanTree(sourcefile, start_offs, end_offs):
     Lb = []
@@ -319,7 +201,7 @@ def buildHuffmanTree(sourcefile, start_offs, end_offs):
 
     for b in Lb:
         nn = TreeNode()
-        nn.setValue(b)
+        nn.set_value(b)
         nodemap.append((b, nn, multib[b]))
 
     while len(nodemap) > 1:
@@ -337,6 +219,7 @@ def buildHuffmanTree(sourcefile, start_offs, end_offs):
         nodemap.insert(i, (0, radix, newcost))
 
     return nodemap[0][1]
+
 
 def compress(sourcefile, start_offs, end_offs, debuggy=False):
     """ :return: bitarray object containing the compressed data """
@@ -385,7 +268,4 @@ def compress(sourcefile, start_offs, end_offs, debuggy=False):
         datum = sourcefile.read(1)
         target_read += 1
 
-    #if not dry_run:
-    #    destfile.write(out_bitstream.tobytes())
-
-    return out_bitstream#out_bitstream.buffer_info()[1]  # TODO: also return out_bitstream.tobytes(), write outside
+    return out_bitstream

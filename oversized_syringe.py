@@ -13,14 +13,14 @@ def extractJob(pac, fid, cmdline, filename):
 
 def nonStaging(pac, cmdline, filename):
     if cmdline.list:
-        pac.printInfo()
+        pac.print_info()
     elif cmdline.list_harder:
-        pac.printDetailInfo()
+        pac.print_detailed_info()
     elif cmdline.file_info:
         file = pac.getFileById(cmdline.file_info)
         if file is not None:
             print("          id    offset       size  compress  size  filename")
-            file.printDetailInfo()
+            file.print_detailed_info()
     elif cmdline.extract_id:
         with open(filename, "rb") as binfile:
             idlist = map(int, cmdline.extract_id.split(","))
@@ -110,23 +110,25 @@ def cliUI(cmdline):
 
     # non-staging operations
     elif cmdline.file is not None:
-        pac = datastruct.pacfile()
+        pac = datastruct.Pacfile()
         with open(cmdline.file, "rb") as binfile:
-            pac.loadFromFile(binfile)
+            pac.load_from_file(binfile)
         nonStaging(pac, cmdline, cmdline.file)
 
     else:
         if cmdline.version:
             print(info.getInfoMsg())
 
-def gUI():
-    mainview.launch()
+def gUI(openfile=None):
+    mainview.launch(openfile=openfile)
 
 def main(cmdline):
-    if len(sys.argv) <= 1:
-        gUI()
-    else:
+    if len(sys.argv) == 2 and cmdline.file:
+        gUI(openfile=cmdline.file)
+    elif len(sys.argv) > 1:
         cliUI(cmdline)
+    else:
+        gUI()
 
 if __name__ == '__main__':
     commandline = cliparse.parsecli()

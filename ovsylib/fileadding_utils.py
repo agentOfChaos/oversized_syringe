@@ -26,31 +26,32 @@ def listrecursive(root, wholedir=False):
 class staging:
 
     def __init__(self):
-        self.package = datastruct.pacfile()
+        self.package = datastruct.Pacfile()
         self.target = ""
         self.start_id = 0
         self.deletes = []
         self.appends = []
         if os.path.isfile(environ_name):
             self.loadEnviron()
+            print("Loaded staging environment from disk")
 
     def loadPackage(self, path):
         with open(path, "rb") as binfile:
             self.target = path
-            self.package.loadFromFile(binfile)
+            self.package.load_from_file(binfile)
             self.start_id = min(self.package.listFileIDs())
 
     def addfile(self, internal_name, path, compression=True):
         collisions = self.package.searchFile(internal_name)
         if len(collisions) == 0:
-            newfile = datastruct.fileentry()
-            newfile.createFromFile(internal_name, path, compress=compression)
+            newfile = datastruct.FileEntry()
+            newfile.create_from_file(internal_name, path, compress=compression)
             self.appends.append(newfile)
             return True
         elif len(collisions) == 1:
             self.deletes.append(self.package.getFileById(collisions[0]))  # stage delete old
-            newfile = datastruct.fileentry()
-            newfile.createFromFile(internal_name, path, compress=compression)
+            newfile = datastruct.FileEntry()
+            newfile.create_from_file(internal_name, path, compress=compression)
             self.appends.append(newfile)  # stage append new
             return False
         else:
@@ -93,10 +94,12 @@ class staging:
 
     def commit(self):
         for dele in self.deletes:
-            self.package.removeFile(dele)
+            self.package.remove_file(dele)
         for add in self.appends:
-            self.package.appendFile(add, start_id=self.start_id)
+            self.package.append_file(add, start_id=self.start_id)
         self.package.sortFiles(start_id=self.start_id)
+        if len(self.deletes) + len(self.appends) == 0:
+            print("Nothing to do")
         self.deletes = []
         self.appends = []
 

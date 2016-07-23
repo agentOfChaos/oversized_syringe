@@ -19,7 +19,12 @@ class BadMagicNum(Exception):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-class algo1:
+
+class Algo1:
+
+    """
+    Handles a single chunk of compressed data
+    """
 
     def __init__(self, id, size):
         self.uncomp_size = 0
@@ -71,7 +76,7 @@ class algo1:
         self.comp_size = self.bitstream.buffer_info()[1]
         return self
 
-    def printInfo(self):
+    def print_info(self):
         print("partial comp size: %d ; partial uncomp size: %d ; relative root address: %x"
               % (self.comp_size, self.uncomp_size, self.rootaddress))
 
@@ -92,13 +97,17 @@ class after_comp_callback:
         self.binfile.seek(savedpos, 0)
 
 
-# need to be standalone, for multiprocess to pickle it
+# needs to be standalone, for multiprocess to pickle it
 def spawn(chunk, sourcefile_name, debuggy):
     with open(sourcefile_name, "rb") as sourcefile:
         return chunk.compress(sourcefile, debuggy=debuggy)
 
 
-class chuunicomp:
+class Chuunicomp:
+
+    """
+    Handles multi-chunked compressed data
+    """
 
     default_chunksize = 0x20000
 
@@ -108,7 +117,7 @@ class chuunicomp:
         self.chunksize = 0
         self.header_size = 0
         self.chunks = []
-        self.aftercompress_callback_obj = None
+        self.aftercompress_callback_obj = None  # see class after_comp_callback
 
     def fromBinfile(self, binfile):
         self.magicseq = struct.unpack("I", binfile.read(intsize))[0]
@@ -129,7 +138,7 @@ class chuunicomp:
     def prepareChunks(self, binfile=None):
         body = []
         for i in range(self.chunk_num):
-            piece = algo1(i, self.chunksize)
+            piece = Algo1(i, self.chunksize)
             if binfile is not None:
                 piece.loadSubHeaderFromFile(binfile)
             body.append(piece)
@@ -180,8 +189,8 @@ class chuunicomp:
             self.aftercompress_callback_obj.compressed(totalcomp + self.header_size, dry_run=dry_run)
         return totalcomp + 4
 
-    def printInfo(self):
+    def print_info(self):
         print("     Compression chunks: %d , header size: %04x" % (self.chunk_num, self.header_size))
         for chunk in self.chunks:
             print("     chunk #%03d: " % (self.chunks.index(chunk),), end="")
-            chunk.printInfo()
+            chunk.print_info()

@@ -1,15 +1,23 @@
 from multiprocessing import Pool, Manager, cpu_count
-from threading import Semaphore
 from queue import Queue
 import math
 
+
+"""
+    Handles parallel computations;
+    multiprocessing is used to work around the GIL limitations in python
+"""
+
+
 def getMaxThreads():
     return cpu_count()
+
 
 def worker(func, args, sem):
     ret = func(*args)
     sem.release()
     return ret
+
 
 class Broker:
 

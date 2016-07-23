@@ -34,15 +34,18 @@ class MainWindow(QtGui.QMainWindow):
         self.lvl1_vert.addLayout(self.lvl2_2_horiz)
         elements.bottombar(self, self.lvl2_2_horiz)
 
-    def loadPAC(self):
-        searchdir = QtCore.QDir.currentPath()
-        """alterdir = os.path.join(adapter.getHome(), ".local", "share", "Steam", "SteamApps", "common")
-        if os.path.isdir(alterdir):
-            searchdir = alterdir"""
-        fName = QtGui.QFileDialog.getOpenFileName(self,
-                                                  "Load PAC file",
-                                                  searchdir,
-                                                  self.tr("All Files (*);;PAC Files (*.pac)"))
+    def loadPAC(self, name=""):
+        if name == "":
+            searchdir = QtCore.QDir.currentPath()
+            """alterdir = os.path.join(adapter.getHome(), ".local", "share", "Steam", "SteamApps", "common")
+            if os.path.isdir(alterdir):
+                searchdir = alterdir"""
+            fName = QtGui.QFileDialog.getOpenFileName(self,
+                                                      "Load PAC file",
+                                                      searchdir,
+                                                      self.tr("All Files (*);;PAC Files (*.pac)"))
+        else:
+            fName = name
         if fName != "":
             self.staging = fileadding_utils.staging()
             try:
@@ -141,12 +144,12 @@ class MainWindow(QtGui.QMainWindow):
         self.operations.abort()
 
     def updateProgress(self, num, text):
-        self.progressBar.setValue(num)
+        self.progressBar.set_value(num)
         self.statusText.setText(text)
 
     def doneCback(self, text, maxoutbar=True):
         if maxoutbar:
-            self.progressBar.setValue(100)
+            self.progressBar.set_value(100)
         self.statusText.setText(text)
         self.updatePACScreen()
         self.updateStagingScreen()
@@ -229,8 +232,10 @@ class MainWindow(QtGui.QMainWindow):
     def showInfo(self):
         QtGui.QMessageBox.about(self, "About", info.getInfoMsg())
 
-def launch():
+def launch(openfile=None):
     app = QtGui.QApplication(sys.argv)
     main = MainWindow()
     main.show()
+    if openfile is not None:
+        main.loadPAC(name=openfile)
     sys.exit(app.exec_())
