@@ -124,6 +124,10 @@ Finally, to create the actual .pac file, hit "write" in the menu bar.
 2. Test support for other OSes
 3. .cpk file support
 
+# Current bugs
+
+Empty files not correctly handled
+
 # Thanks to
 
 [Luigi Auriemma](aluigi.altervista.org)
