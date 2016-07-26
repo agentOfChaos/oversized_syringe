@@ -3,7 +3,7 @@ import struct
 import math
 
 """
-compression algorith based on the following structure:
+compression algorithm based on the following structure:
 Note: the data structures aren't aligned at all, meaning we'll have to parse it bit by bit.
 ([algo1 header] actually handled elsewhere, this code deals with data starting in the next area)
 [vectorized tree]

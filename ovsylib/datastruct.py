@@ -122,7 +122,7 @@ class FileEntry:
         self.size = data[2]
         if data[3] != 0:
             self.compressed = True
-        self.offset = data[4]
+        self.offset = data[4]   # note: the offset read here is relative to the beginning of the data area
 
     def load_compression_info(self, binfile):
         """

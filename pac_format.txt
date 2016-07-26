@@ -1,0 +1,72 @@
+The .pac file structure was alredy succesfully reverse-engineered, I simply had to look it up inside
+a QuickBMS script file. Most of my work went into reversing the compressed section structure
+
+
+                                                             number                  note: everything is little endian unless
+           .pac file structure                               of files                      specified otherwise
+                                                 DW_PACK  0x0   |   0x0
+                                  20 bytes long                 v
+           +------------------+                         7   11   15   19
+           |     header       |  +------------>  +------+ +--+ +--+ +--+
+           +------------------+                  0        8    12   16                   actual size
+           |    file entry    |                                                                    |
+           |                  |  each file entry:                               compressed size    |   is compressed? [2]
+directory  |    file entry    |  288 bytes long       file id                                 |    |    |
+           |                  |                  0x0   |                                0x0   |    |    |   offset [3]
+           |    file entry    |  +-----+               v                                      v    v    v
+           |                  |        |            3    7        file name [1]     267  271  275  279  283  287
+           +------------------+        +------>  +--+ +--+ +--------------------------+ +--+ +--+ +--+ +--+ +--+
+           |                  |                  0    4    8     (total 260 bytes)      268  272  276  280  284
+           |    file data     |
+           |                  |                  [1]: the file name is stored with the full            [2]: nonzero if
+           |                  |                  path, using "\" as separator, i.e:                    compressed
+           |                  |                   script\world\stuff.txt
+           |                  |
+           |                  |                  [3]: the offset is not relative to the beginning of the file, but
+   actual  |                  |                  rather to the beginning of the "actual data" section
+     data  |    file data     |
+           |                  |
+           |                  |
+           |                  |
+           |                  |                  The size is specified in the corresponding file entry.
+           |                  |                  If the data is un-compressed, there are an "actual size" number of raw bytes
+           |                  |                  If the data is compressed, there are a "compressed size" number of bytes,
+           |    file data     |  +------------>  organized in the following structure:
+           |                  |
+           |                  |
+           |                  |
+           +------------------+
+
+                                                      magic number [1]
+         compressed section structure                  |   number of chunks
+                                                       |    |   chunk size (in bytes)
+                                                       |    |    |   header size [2]
+        +-   +-------------------+    16 bytes long    |    |    |    |
+        |    |                   |                       3    7   11   15
+        |    | global sub-header |  +-------------->  +--+ +--+ +--+ +--+
+        |    |                   |                    0    4    8    12
+        |    +-------------------+
+        |    |                   |                    [1]: magic number is 0x1234
+        |    |  chunk sub-header |                    [2]: the full header, sum of all the sub-headers (including the global)
+header  |    |                   |                         can be calculated with the formula (4 + (3 * "number of chunks")) * 4
+        |    |                   |
+        |    |  chunk sub-header |
+        |    |                   |   12 bytes long   chunk uncompressed size
+        |    |                   |                    |   chunk compressed size
+        |    |  chunk sub-header |  +-------+         |    |   huffman tree root address [3]
+        |    |                   |          |         |    |    |
+        +-   +-------------------+          |           3    7   11
+        |    |                   |          +------> +--+ +--+ +--+
+        |    |     chunk data    |                   0    4    8
+        |    |                   |
+        |    |     chunk data    |                   [3]: the address specified here is relative to the beginning of the data
+        |    |                   |                        section
+        |    |     chunk data    |
+  data  |    |                   |
+        |    |     chunk data    |                   The data in here is divided in blocks, whose location and length are
+        |    |                   |  <--------------+ specified in the corresponding chunk sub-header. The content of each
+        |    |     chunk data    |                   block is a blob of bits, and its structure is described in the file
+        |    |                   |                   ovsylib/compresion_algos/yggdrasil.py
+        |    |                   |
+        |    |                   |
+        +-   +-------------------+

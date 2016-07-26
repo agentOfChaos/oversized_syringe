@@ -15,6 +15,9 @@ I was able to un-compress the files by using QuickBMS (which you should also che
 
 The file's directory and compression formats are pretty much understood now (I'd say 99.9%); the developement is now aimed at creating a stable and usable tool
 
+I have gathered most of the information about the file structure inside pac_format.txt, and also in the initial section
+of some python files.
+
 # Correctness
 
 I tried unpacking and repacking some of the game's archives for testing purposes, here's the results:
