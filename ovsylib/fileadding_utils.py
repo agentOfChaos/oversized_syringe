@@ -19,7 +19,7 @@ def listrecursive(root, wholedir=False):
                 localname = os.path.join(topdir(root), os.path.relpath(fullpath, root))
             else:
                 localname = os.path.relpath(fullpath, root)
-            allfiles[fullpath] = datastruct.adjustSeparatorForPac(localname)
+            allfiles[fullpath] = datastruct.adjust_separator_for_pac(localname)
     return allfiles
 
 
@@ -39,17 +39,17 @@ class staging:
         with open(path, "rb") as binfile:
             self.target = path
             self.package.load_from_file(binfile)
-            self.start_id = min(self.package.listFileIDs())
+            self.start_id = min(self.package.list_file_ids())
 
     def addfile(self, internal_name, path, compression=True):
-        collisions = self.package.searchFile(internal_name)
+        collisions = self.package.search_file(internal_name)
         if len(collisions) == 0:
             newfile = datastruct.FileEntry()
             newfile.create_from_file(internal_name, path, compress=compression)
             self.appends.append(newfile)
             return True
         elif len(collisions) == 1:
-            self.deletes.append(self.package.getFileById(collisions[0]))  # stage delete old
+            self.deletes.append(self.package.get_file_by_id(collisions[0]))  # stage delete old
             newfile = datastruct.FileEntry()
             newfile.create_from_file(internal_name, path, compress=compression)
             self.appends.append(newfile)  # stage append new
@@ -86,9 +86,9 @@ class staging:
                 self.appends.remove(add)
                 modif = True
         if name not in self.deletes:
-            target = self.package.searchFile(name, exact_match=True)
+            target = self.package.search_file(name, exact_match=True)
             if len(target) == 1:
-                self.deletes.append(self.package.getFileById(target[0]))
+                self.deletes.append(self.package.get_file_by_id(target[0]))
                 modif = True
         return modif
 
@@ -97,7 +97,7 @@ class staging:
             self.package.remove_file(dele)
         for add in self.appends:
             self.package.append_file(add, start_id=self.start_id)
-        self.package.sortFiles(start_id=self.start_id)
+        self.package.sort_files(start_id=self.start_id)
         if len(self.deletes) + len(self.appends) == 0:
             print("Nothing to do")
         self.deletes = []

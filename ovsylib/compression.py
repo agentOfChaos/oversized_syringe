@@ -1,10 +1,11 @@
 import struct
 import os
-from ovsylib.compresion_algos import yggdrasil
 from ovsylib.aggressive_threading import Broker
 from threading import Thread
 
-intsize = 4
+from ovsylib.compresion_algos import yggdrasil
+from ovsylib.utils.constants import intsize
+from ovsylib.utils.exceptions import BadMagicNum
 
 
 def checksize(binfile):
@@ -14,10 +15,6 @@ def checksize(binfile):
     binfile.seek(old_file_position, os.SEEK_SET)
     return size
 
-
-class BadMagicNum(Exception):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
 
 class Algo1:

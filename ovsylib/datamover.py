@@ -15,10 +15,12 @@ def dd(iffy, vert, offset, length, blocksize=1024):
     :param vert: output file
     """
     compa = ceil(length / blocksize)
-    iffy.seek(offset, 0)
+    saved_seek = iffy.tell()
+    iffy.seek(offset)
     for i in range(compa):
         data = next(read_file_chunk(iffy, blocksize))
         if i == compa - 1:
             falcom = length % blocksize
             data = data[:falcom]
         vert.write(data)
+    iffy.seek(saved_seek)

@@ -8,7 +8,7 @@ import os,sys
 
 def extractJob(pac, fid, cmdline, filename):
     with open(filename, "rb") as binfile:
-        pac.extractFileId(fid, cmdline.extract, binfile, debuggy=cmdline.debug)
+        pac.extract_file_id(fid, cmdline.extract, binfile, debuggy=cmdline.debug)
 
 
 def nonStaging(pac, cmdline, filename):
@@ -17,7 +17,7 @@ def nonStaging(pac, cmdline, filename):
     elif cmdline.list_harder:
         pac.print_detailed_info()
     elif cmdline.file_info:
-        file = pac.getFileById(cmdline.file_info)
+        file = pac.get_file_by_id(cmdline.file_info)
         if file is not None:
             print("          id    offset       size  compress  size  filename")
             file.print_detailed_info()
@@ -25,21 +25,21 @@ def nonStaging(pac, cmdline, filename):
         with open(filename, "rb") as binfile:
             idlist = map(int, cmdline.extract_id.split(","))
             if cmdline.raw:
-                location = datastruct.adjustSeparatorForFS("raw-extract/")
+                location = datastruct.adjust_separator_for_fs("raw-extract/")
                 if cmdline.extract:
                     location = cmdline.extract
                 for fid in idlist:
-                    pac.dumpFileId(fid, location, binfile)
+                    pac.dump_file_id(fid, location, binfile)
             else:
-                location = datastruct.adjustSeparatorForFS("extract/")
+                location = datastruct.adjust_separator_for_fs("extract/")
                 if cmdline.extract:
                     location = cmdline.extract
                 for fid in idlist:
-                    pac.extractFileId(fid, location, binfile, debuggy=cmdline.debug)
+                    pac.extract_file_id(fid, location, binfile, debuggy=cmdline.debug)
 
     elif cmdline.extract:
         threads = Broker(len(pac.files))
-        for fid in pac.listFileIDs():
+        for fid in pac.list_file_ids():
             threads.appendNfire(extractJob, (pac, fid, cmdline, filename))
         threads.stop()
         print("Extraction job completed")
@@ -56,9 +56,9 @@ def cliUI(cmdline):
                     relpath = os.path.relpath(cmdline.file, cmdline.base_dir)
                     newbie = sekai.addfile(relpath, cmdline.file, compression=docompress)
                     if newbie:
-                        print("Added new file with name: " + datastruct.adjustSeparatorForPac(relpath))
+                        print("Added new file with name: " + datastruct.adjust_separator_for_pac(relpath))
                     else:
-                        print("File " + datastruct.adjustSeparatorForPac(relpath) + " will be replaced")
+                        print("File " + datastruct.adjust_separator_for_pac(relpath) + " will be replaced")
                 else:
                     print("directory \"" + cmdline.add + "\" si not valid")
             elif os.path.isdir(cmdline.file):

@@ -69,7 +69,7 @@ class MainWindow(QtGui.QMainWindow):
                 if children:
                     addItems(item, children)
         model = QtGui.QStandardItemModel()
-        datastuff = adapter.listToTree(self.staging.package.listFileNames())
+        datastuff = adapter.listToTree(self.staging.package.list_file_names())
         label = self.staging.target
         if self.staging.target == "":
             label = "new file"
@@ -108,7 +108,7 @@ class MainWindow(QtGui.QMainWindow):
             fullpath.append(str(self.virtdir.model().data(index)))
         fullpath.reverse()
         if len(fullpath) > 0:
-            return datastruct.adjustSeparatorForFS(separator.join(fullpath))
+            return datastruct.adjust_separator_for_fs(separator.join(fullpath))
         return None
 
     def getCurrentComputerDirectory(self):
@@ -144,12 +144,12 @@ class MainWindow(QtGui.QMainWindow):
         self.operations.abort()
 
     def updateProgress(self, num, text):
-        self.progressBar.set_value(num)
+        self.progressBar.setValue(num)
         self.statusText.setText(text)
 
     def doneCback(self, text, maxoutbar=True):
         if maxoutbar:
-            self.progressBar.set_value(100)
+            self.progressBar.setValue(100)
         self.statusText.setText(text)
         self.updatePACScreen()
         self.updateStagingScreen()

@@ -32,7 +32,7 @@ class CustomThread(QtCore.QThread):
 
 def extractJob(pac, fid, destdir, filename):
     with open(filename, "rb") as binfile:
-        pac.extractFileId(fid, destdir, binfile, debuggy=False)
+        pac.extract_file_id(fid, destdir, binfile, debuggy=False)
 
 
 class GeoFront:
@@ -78,7 +78,7 @@ class GeoFront:
             def capsule(thread):
                 threads = Broker(len(self.app.staging.package.files))
                 thread.abort_interface = threads
-                fids = self.app.staging.package.searchFile(internalname, exact_match=False)
+                fids = self.app.staging.package.search_file(internalname, exact_match=False)
                 for fid in fids:
                     if thread.handbrake:
                         break
@@ -86,11 +86,11 @@ class GeoFront:
                                         (self.app.staging.package,
                                          fid, saveto, self.app.staging.target)):
                         break
-                    thread.progressCallback(self.app.staging.package.getFileById(fid))
+                    thread.progressCallback(self.app.staging.package.get_file_by_id(fid))
                 threads.stop()
                 self.after_run(thread, "done %s %d files" % (self.opname[1], self.doneunits))
             self.worker.target = capsule
-            fids = self.app.staging.package.searchFile(internalname, exact_match=False)
+            fids = self.app.staging.package.search_file(internalname, exact_match=False)
             self.numunits = len(fids)
             self.working = True
             self.doneunits = 0
@@ -136,11 +136,11 @@ class GeoFront:
         self.app.updateStagingScreen()
 
     def stageDel(self, internalname):
-        fids = self.app.staging.package.searchFile(internalname, exact_match=False)
+        fids = self.app.staging.package.search_file(internalname, exact_match=False)
         if len(fids) > 0:
             self.unsaved = True
         for fid in fids:
-            self.app.staging.remove_file(self.app.staging.package.getFileById(fid).name)
+            self.app.staging.remove_file(self.app.staging.package.get_file_by_id(fid).name)
         self.app.updateStagingScreen()
 
     def stageUndo(self, internalname):

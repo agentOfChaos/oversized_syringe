@@ -1,11 +1,13 @@
-import struct,os
-from ovsylib import datamover, compression, customsort
+import struct
+import os
 import math
-import platform
 from operator import attrgetter
 
-intsize = 2
-longsize = 4
+from ovsylib import datamover, compression, customsort
+from ovsylib.utils.binary import put_string, get_string
+from ovsylib.utils.filenames import adjust_separator_for_fs, adjust_separator_for_pac
+from ovsylib.utils.constants import intsize
+
 
 """
     This module contains classes representing the various data structures
@@ -13,59 +15,6 @@ longsize = 4
     The classes are "smart", since they contain both the data and the methods to
     read/write/manipulate it
 """
-
-
-def getString(binfile, length):
-    """
-    Read an ascii string from a binary file; the seek is updated accordingly
-
-    :param binfile: file object
-    :param length: number of bytes
-    :return: ascii string
-    """
-    ret = ""
-    read = 0
-    for i in range(length):
-        char = struct.unpack("B", binfile.read(1))[0]
-        if char != 0:
-            ret = ret + chr(char)
-        else:
-            read = i + 1
-            break
-    if read < length:
-        binfile.seek(length - read, 1)
-    return ret
-
-def outString(binfile, length, text):
-    """
-    Writes an ascii string to a file
-
-    :param binfile: file object
-    :param length: number of bytes
-    :param text: ascii string
-    """
-    for i in range(length):
-        if i < len(text):
-            binfile.write(struct.pack("c", text[i].encode("ascii")))
-        else:
-            binfile.write(struct.pack("B", 0))
-
-def adjustSeparatorForPac(originstring):
-    """
-    convert a string cointaining "/" path separators (i.e. unix filname)
-    to a string containing "\" path separators (as used by the .pac file directory)
-    """
-    return originstring.replace("/","\\")
-
-def adjustSeparatorForFS(originstring):
-    """
-    convert a string containing "\" path separators (as used by the .pac file directory)
-    to a string containing the os specific path separator
-    """
-    if platform.system() == "Windows":
-        return originstring.replace("/","\\")
-    else:
-        return originstring.replace("\\","/")
 
 
 class Header:
@@ -79,13 +28,13 @@ class Header:
         self.dwpack = ""
 
     def load_metadata(self, binfile):
-        self.dwpack = getString(binfile, 8)
-        data = struct.unpack("III", binfile.read(longsize * 3))
+        self.dwpack = get_string(binfile, 8)
+        data = struct.unpack("III", binfile.read(intsize * 3))
         self.nfiles = data[1]
 
     def write_metadata(self, binfile, dry_run=False):
         if not dry_run:
-            outString(binfile, 8, self.dwpack)
+            put_string(binfile, 8, self.dwpack)
             binfile.write(struct.pack("I", 0))
             binfile.write(struct.pack("I", self.nfiles))
             binfile.write(struct.pack("I", 0))
@@ -114,10 +63,10 @@ class FileEntry:
         :param binfile: file object
         :return:
         """
-        data = struct.unpack("II", binfile.read(longsize * 2))
+        data = struct.unpack("II", binfile.read(intsize * 2))
         self.id = data[1]
-        self.name = getString(binfile, 260)
-        data = struct.unpack("IIIII", binfile.read(longsize * 5))
+        self.name = get_string(binfile, 260)
+        data = struct.unpack("IIIII", binfile.read(intsize * 5))
         self.comp_size = data[1]
         self.size = data[2]
         if data[3] != 0:
@@ -147,7 +96,7 @@ class FileEntry:
         :return:
         """
         if adjust_separator:
-            self.name = adjustSeparatorForPac(name)
+            self.name = adjust_separator_for_pac(name)
         else:
             self.name = name
         self.size = os.path.getsize(filepath)
@@ -201,7 +150,7 @@ class FileEntry:
         if not dry_run:
             updated.write(struct.pack("I", 0))
             updated.write(struct.pack("I", self.id))
-            outString(updated, 260, self.name)
+            put_string(updated, 260, self.name)
             updated.write(struct.pack("I", 0))
         if self.compressed:
             self.compr_object.aftercompress_callback_obj = compression.after_comp_callback(updated.tell(), updated)
@@ -314,7 +263,7 @@ class Pacfile:
 
     def theorize_metadata_offset(self):
         """ :return: metadata offset calculated from the current number of files """
-        return len(self.files) * ((7 * longsize) + 260) + (longsize * 3 + 8)
+        return len(self.files) * ((7 * intsize) + 260) + (intsize * 3 + 8)
 
     def adjust_metaoff_displace(self, direction=1):
         """
@@ -340,19 +289,19 @@ class Pacfile:
             if f.compressed:
                 f.load_compression_info(binfile)
 
-    def getFileById(self, fid):
+    def get_file_by_id(self, fid):
         for f in self.files:
             if f.id == fid:
                 return f
         return None
 
-    def listFileIDs(self):
+    def list_file_ids(self):
         ids = []
         for f in self.files:
             ids.append(f.id)
         return ids
 
-    def listFileNames(self):
+    def list_file_names(self):
         return map(attrgetter("name"), self.files)
 
     def create_destination(self, fid, destination):
@@ -361,21 +310,21 @@ class Pacfile:
         :param destination: file path string
         :return:
         """
-        file = self.getFileById(fid)
-        fname = adjustSeparatorForFS(file.name)
+        file = self.get_file_by_id(fid)
+        fname = adjust_separator_for_fs(file.name)
         fullpath = os.path.join(os.getcwd(), os.path.join(destination, fname))
         os.makedirs(os.path.dirname(fullpath), exist_ok=True)
         return fullpath
 
-    def dumpFileId(self, fid, destination, binfile):
+    def dump_file_id(self, fid, destination, binfile):
         """ do not decompress extracted file."""
-        file = self.getFileById(fid)
+        file = self.get_file_by_id(fid)
         fullpath = self.create_destination(fid, destination)
         file.dumpMyself(fullpath, binfile)
 
-    def extractFileId(self, fid, destination, binfile, debuggy=False):
+    def extract_file_id(self, fid, destination, binfile, debuggy=False):
         """ it's the actual file to decide if run decompres, based on metadata """
-        file = self.getFileById(fid)
+        file = self.get_file_by_id(fid)
         fullpath = self.create_destination(fid, destination)
         file.extractMyself(fullpath, binfile, debuggy=debuggy)
 
@@ -386,7 +335,7 @@ class Pacfile:
         """
         self.rollback_metaoff_displace()
         if len(self.files) > 0:
-            file.id = max(self.listFileIDs()) + 1
+            file.id = max(self.list_file_ids()) + 1
         else:
             file.id = start_id
         self.files.append(file)
@@ -411,7 +360,7 @@ class Pacfile:
         for file in self.files:
             file.id = self.files.index(file) + start_id  # make sure ids are still consistent
 
-    def sortFiles(self, start_id=0):
+    def sort_files(self, start_id=0):
         self.files = sorted(self.files, key=customsort.cmp_to_key(customsort.asciicompare))
         self.refreshFileIDs(start_id=start_id)
 
@@ -447,11 +396,11 @@ class Pacfile:
                     if abort():
                         break
 
-    def searchFile(self, name, exact_match=True, adjust_separator=True):
+    def search_file(self, name, exact_match=True, adjust_separator=True):
         """ :return: list of file ids """
         ret = []
         if adjust_separator:
-            name = adjustSeparatorForPac(name)
+            name = adjust_separator_for_pac(name)
         for file in self.files:
             if exact_match:
                 if file.name == name:

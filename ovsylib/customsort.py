@@ -53,3 +53,25 @@ def asciicompare(fa, fb):
         return 1
     else:
         return -1
+
+def asciicompare2(fa, fb):
+    a = fa[0].file_name
+    b = fb[0].file_name
+    stopat = min(len(a), len(b))
+    for i in range(stopat):
+        ai = a[i]
+        bi = b[i]
+        if ai == '_':
+            ai = '~'
+        if bi == '_':
+            bi = '~'
+        if ord(ai) < ord(bi):
+            return -1
+        elif ord(ai) > ord(bi):
+            return 1
+    if len(a) == len(b):
+        return 0
+    elif len(a) < len(b):
+        return 1
+    else:
+        return -1

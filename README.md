@@ -18,6 +18,8 @@ The file's directory and compression formats are pretty much understood now (I'd
 I have gathered most of the information about the file structure inside pac_format.txt, and also in the initial section
 of some python files.
 
+**The information gathered as a result of the reverse-engineering process are documented in pac_format.txt**
+
 # Correctness
 
 I tried unpacking and repacking some of the game's archives for testing purposes, here's the results:
@@ -123,9 +125,10 @@ Finally, to create the actual .pac file, hit "write" in the menu bar.
 
 # Roadmap
 
-1. Extensive testing
-2. Test support for other OSes
-3. .cpk file support
+The project in is current state does word, however, the actual code structure grew following the re-eng process,
+and thus there are many design choices that made sense at the time, but are much more awkward now that I see the
+complete picture.  
+A complete refactoring/reimplementation of datastruct.py will be necessary.
 
 # Current bugs
 
