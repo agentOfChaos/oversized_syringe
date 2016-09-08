@@ -80,12 +80,12 @@ class TreeNode:
             return self
         if self.childzero.isActive:
             return self.childzero
-        deepleft = self.childzero.findFirstActive()
+        deepleft = self.childzero.find_first_active()
         if deepleft is not None:
             return deepleft
         if self.childone.isActive:
             return self.childone
-        deepright = self.childone.findFirstActive()
+        deepright = self.childone.find_first_active()
         if deepright is not None:
             return deepright
         return None
