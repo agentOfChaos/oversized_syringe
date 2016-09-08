@@ -320,13 +320,13 @@ class Pacfile:
         """ do not decompress extracted file."""
         file = self.get_file_by_id(fid)
         fullpath = self.create_destination(fid, destination)
-        file.dumpMyself(fullpath, binfile)
+        file.dump_myself(fullpath, binfile)
 
     def extract_file_id(self, fid, destination, binfile, debuggy=False):
         """ it's the actual file to decide if run decompres, based on metadata """
         file = self.get_file_by_id(fid)
         fullpath = self.create_destination(fid, destination)
-        file.extractMyself(fullpath, binfile, debuggy=debuggy)
+        file.extract_myself(fullpath, binfile, debuggy=debuggy)
 
     def append_file(self, file, start_id=0):
         """
